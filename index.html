@@ -10,7 +10,7 @@
         
         #banner { height: 3.5vh; background: #000; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--gold); border-bottom: 1px solid #222; }
         #v-frame { width: 100%; height: 63vh; overflow: hidden; position: relative; background: #000; }
-        video { height: 100%; width: auto; object-fit: contain; position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
+        video { height: 100%; width: 100%; object-fit: cover; position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
 
         #deck { height: 33.5vh; display: grid; grid-template-columns: 0.95fr 1.05fr; background: #050505; padding: 4px 8px; gap: 8px; padding-bottom: env(safe-area-inset-bottom); }
         .panel { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; position: relative; }
@@ -31,7 +31,6 @@
 
         #field-container { width: 100%; flex-grow: 1; background: #000; position: relative; overflow: hidden; margin-top: 4px; border-radius: 4px; border: 1px solid #222; }
         .field-svg { width: 100%; height: 100%; }
-        .hit-dot { position: absolute; width: 16px; height: 16px; background: rgba(0,0,0,0.9); border: 1px solid #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 900; transform: translate(-50%, -50%); }
 
         #result-card { width: 100%; height: 6.5vh; background: var(--board); border: 1.5px solid #444; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; text-align: center; }
         #res-main { color: var(--gold); font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
@@ -42,14 +41,13 @@
         
         .ball-asset { position: absolute; width: 22px; height: 22px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 5; box-shadow: 0 0 10px #fff; }
         .bat-asset { position: absolute; width: 30px; height: 30px; background: var(--wood); border-radius: 50%; transform: translate(-50%, -50%); z-index: 4; border: 2px solid #000; }
-        .pitch-dot { position: absolute; width: 22px; height: 22px; background: rgba(255,255,255,0.3); border: 1.5px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 1; }
     </style>
 </head>
 <body>
 
-<div id="banner">Ohtani vs Trout - WBC 2023</div>
+<div id="banner">CRONIN BASEBALL PRO - LIVE SESSION</div>
 <div id="v-frame">
-    <video id="v" autoplay muted playsinline></video>
+    <video id="v" autoplay muted playsinline crossorigin="anonymous"></video>
 </div>
 
 <div id="deck">
@@ -70,7 +68,7 @@
         </div>
     </div>
     <div class="panel">
-        <div id="result-card"><div id="res-main">READY</div><div id="res-sub">STREAMING FROM MLB...</div></div>
+        <div id="result-card"><div id="res-main">READY</div><div id="res-sub">INITIALIZING...</div></div>
         <div id="swing-zone"><div id="strike-zone"></div></div>
     </div>
 </div>
@@ -79,22 +77,26 @@
     const v = document.getElementById('v');
     const sz = document.getElementById('strike-zone');
     const swz = document.getElementById('swing-zone');
-    const fSvg = document.getElementById('field-svg');
     const resMain = document.getElementById('res-main');
     const resSub = document.getElementById('res-sub');
 
-    // Statcast-Driven Playbook
+    // Updated with high-availability sample video for testing
     const playlist = [
-        { src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/530e9f0d-e2e60f06-81676f4e-csvm-diamondx64-asset_1280x720_59_4000K.mp4", t: 3.1, x: -0.3, y: 0.8, type: "4S Fastball", v: 100 },
-        { src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/8e90656a-360495f4-3d9804ef-csvm-diamondx64-asset_1280x720_59_4000K.mp4", t: 3.2, x: 0.1, y: -0.5, type: "Slider", v: 88 },
-        { src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/58957422-96942468-6c84381e-csvm-diamondx64-asset_1280x720_59_4000K.mp4", t: 3.0, x: -0.1, y: 1.0, type: "4S Fastball", v: 100 }
+        { src: "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/free-baseball.mp4", t: 1.5, x: 0.2, y: 0.1, type: "Sinker", v: 94 },
+        { src: "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/free-baseball.mp4", t: 1.5, x: -0.4, y: 0.5, type: "Fastball", v: 98 }
     ];
 
     let pIdx = 0;
     let g = { r:0, b:0, s:0, o:0, bases:[false,false,false], processed: false };
 
     function loadPitch() {
-        if(pIdx >= playlist.length) { resMain.innerText = "SERIES COMPLETE"; return; }
+        if(pIdx >= playlist.length) { 
+            resMain.innerText = "SESSION COMPLETE"; 
+            resSub.innerText = "RELOADING PLAYLIST...";
+            pIdx = 0; // Loop for demo
+            setTimeout(loadPitch, 3000);
+            return; 
+        }
         v.src = playlist[pIdx].src;
         v.load();
         g.processed = false;
@@ -102,31 +104,38 @@
         resSub.innerText = `NEXT: ${playlist[pIdx].type}`;
     }
 
+    // Error handling if video fails
+    v.onerror = () => {
+        resMain.innerText = "LOAD ERROR";
+        resSub.innerText = "SKIPPING TO NEXT...";
+        setTimeout(nextAction, 2000);
+    };
+
     swz.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const now = v.currentTime;
         const p = playlist[pIdx];
-        if(g.processed || Math.abs(now - p.t) > 0.8) return;
+        if(g.processed || Math.abs(now - p.t) > 1.0) return;
         
         g.processed = true;
         const rect = sz.getBoundingClientRect();
-        const tx = e.touches[0].clientX - rect.left;
-        const ty = e.touches[0].clientY - rect.top;
+        const touch = e.touches[0];
+        const tx = touch.clientX - rect.left;
+        const ty = touch.clientY - rect.top;
+        
+        // Map Statcast coords to Strike Zone UI
         const px = ((p.x / 1.5) + 0.5) * sz.offsetWidth;
         const py = (0.5 - (p.y / 2.0)) * sz.offsetHeight;
         
         const dist = Math.sqrt((tx - px)**2 + (ty - py)**2);
-        const tDiff = now - p.t;
 
         const bat = document.createElement('div'); bat.className='bat-asset'; bat.style.left=tx+'px'; bat.style.top=ty+'px'; sz.appendChild(bat);
         const ball = document.createElement('div'); ball.className='ball-asset'; ball.style.left=px+'px'; ball.style.top=py+'px'; sz.appendChild(ball);
 
-        if(dist < 30) {
-            const ev = Math.round(110 - (dist * 2.5) - (Math.abs(tDiff) * 350));
+        if(dist < 35) {
             resMain.innerText = "HIT!";
-            resSub.innerText = `SQUARED | EV: ${ev} MPH`;
-            // Simplified hit for streaming demo
-            setTimeout(nextAction, 2000);
+            resSub.innerText = `SQUARED UP | ${p.v} MPH`;
+            setTimeout(nextAction, 2500);
         } else {
             resMain.innerText = "STRIKE (WHIFF)";
             g.s++;
@@ -136,20 +145,30 @@
     });
 
     function nextAction() {
-        sz.querySelectorAll('.ball-asset, .bat-asset, .pitch-dot').forEach(el => el.remove());
+        sz.querySelectorAll('.ball-asset, .bat-asset').forEach(el => el.remove());
         pIdx++;
         loadPitch();
     }
 
     function updateUI() {
+        if(g.s >= 3) { g.s = 0; g.o++; }
         const render = (id, cur, max, cls) => {
             let h = ''; for(let i=0; i<max; i++) h += `<div class="dot ${i<cur?cls:''}"></div>`;
             document.getElementById(id).innerHTML = h;
         };
-        render('b-dots', g.b, 3, 'b-on'); render('s-dots', g.s, 2, 's-on'); render('o-dots', g.o, 2, 'o-on');
+        render('b-dots', g.b, 3, 'b-on'); 
+        render('s-dots', g.s, 2, 's-on'); 
+        render('o-dots', g.o, 2, 'o-on');
     }
 
-    v.onended = () => { if(!g.processed) { resMain.innerText = "STRIKE (TAKEN)"; g.s++; updateUI(); setTimeout(nextAction, 2000); } };
+    v.onended = () => { 
+        if(!g.processed) { 
+            resMain.innerText = "STRIKE (TAKEN)"; 
+            g.s++; 
+            updateUI(); 
+            setTimeout(nextAction, 2000); 
+        } 
+    };
 
     loadPitch();
     updateUI();
