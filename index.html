@@ -5,136 +5,187 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Cronin Baseball: Legend Series</title>
     <style>
-        :root { --gold: #f1c40f; --bg: #050505; --board: #111; }
-        body { margin: 0; background: #000; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
+        :root { --gold: #f1c40f; --blue: #3498db; --bg: #050505; --board: #111; }
+        body { margin: 0; background: #000; color: #fff; font-family: 'Inter', -apple-system, sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
         
-        /* Selection Header */
-        #player-select { height: 7vh; background: #111; display: flex; align-items: center; justify-content: space-around; border-bottom: 2px solid #333; }
-        .p-btn { padding: 8px 15px; border-radius: 20px; border: 1px solid #444; background: #222; color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; transition: 0.3s; }
-        .p-btn:active { background: var(--gold); color: #000; transform: scale(0.95); }
-        .active-p { border-color: var(--gold); color: var(--gold); }
+        /* Loading/Start Overlay */
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; transition: 0.5s; }
+        #overlay h1 { color: var(--gold); margin-bottom: 10px; font-size: 24px; letter-spacing: 2px; }
+        #overlay p { font-size: 14px; color: #888; margin-bottom: 30px; }
+        .start-btn { padding: 15px 40px; border: 2px solid var(--gold); color: var(--gold); background: transparent; font-weight: 800; border-radius: 50px; cursor: pointer; transition: 0.3s; }
+        .start-btn:active { background: var(--gold); color: #000; transform: scale(0.95); }
 
-        #v-frame { width: 100%; height: 60vh; position: relative; background: #000; }
-        video { width: 100%; height: 100%; object-fit: contain; }
+        #v-frame { width: 100%; height: 60vh; background: #000; position: relative; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: cover; }
 
-        #deck { height: 33vh; display: grid; grid-template-columns: 1fr 1fr; background: #050505; padding: 8px; gap: 8px; }
-        .panel { display: flex; flex-direction: column; align-items: center; justify-content: space-between; }
+        #deck { height: 40vh; display: grid; grid-template-columns: 1fr 1.2fr; background: var(--bg); padding: 10px; gap: 10px; border-top: 1px solid #222; }
+        .panel { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; }
 
-        #result-card { width: 100%; height: 8vh; background: var(--board); border: 1.5px solid #444; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #result-card { width: 100%; height: 15%; background: var(--board); border: 1px solid #333; border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
         #res-main { color: var(--gold); font-size: 14px; font-weight: 900; }
         
-        #swing-zone { width: 100%; flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; background: rgba(255,255,255,0.03); border-radius: 4px; margin-top: 5px; }
-        #strike-zone { width: 90px; height: 130px; border: 2px solid #fff; position: relative; pointer-events: none; }
-        
-        .asset { position: absolute; width: 24px; height: 24px; border-radius: 50%; transform: translate(-50%, -50%); }
-        .ball { background: #fff; box-shadow: 0 0 10px #fff; z-index: 5; }
-        .bat { background: #8b5a2b; border: 2px solid #000; z-index: 4; }
+        #swing-zone { width: 100%; flex-grow: 1; background: rgba(255,255,255,0.02); border-radius: 8px; margin-top: 8px; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; border: 1px dashed rgba(255,255,255,0.1); }
+        #strike-zone { width: 100px; height: 140px; border: 2px solid rgba(255,255,255,0.4); position: relative; pointer-events: none; border-radius: 4px; }
+
+        /* Swing Assets */
+        .asset { position: absolute; width: 26px; height: 26px; border-radius: 50%; transform: translate(-50%, -50%); transition: opacity 0.5s; }
+        .ball { background: #fff; box-shadow: 0 0 15px #fff; z-index: 10; border: 1px solid #ddd; }
+        .bat { background: #8b5a2b; border: 2px solid #5d3a1a; z-index: 5; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
 
-<div id="player-select">
-    <div class="p-btn" onclick="loadLegend('ohtani', 660271)">OHTANI</div>
-    <div class="p-btn" onclick="loadLegend('judge', 592450)">JUDGE</div>
-    <div class="p-btn" onclick="loadLegend('trout', 545361)">TROUT</div>
+<div id="overlay">
+    <h1>CRONIN BASEBALL</h1>
+    <p>LEGEND SERIES: OHTANI • JUDGE • TROUT</p>
+    <button class="start-btn" onclick="startGame()">START 15-HR CHALLENGE</button>
 </div>
 
 <div id="v-frame">
-    <video id="v" autoplay muted playsinline crossorigin="anonymous"></video>
+    <video id="v" preload="auto" playsinline muted crossorigin="anonymous"></video>
 </div>
 
 <div id="deck">
     <div class="panel">
         <div id="result-card">
-            <div id="res-main">SELECT PLAYER</div>
-            <div id="res-sub" style="font-size: 9px; color: #888;">TAP A LEGEND TO START</div>
+            <div id="res-main">WAITING FOR PITCH</div>
+            <div id="res-sub" style="font-size: 9px; color: #666; margin-top: 2px;">SYNCING STATCAST...</div>
         </div>
-        <div id="swing-zone"><div id="strike-zone"></div></div>
+        <div id="swing-zone">
+            <div id="strike-zone"></div>
+        </div>
     </div>
-    <div class="panel">
-        <div style="font-size: 10px; color: #555;">STATS & LOGS</div>
-        <div id="log-display" style="font-size: 9px; text-align: center; color: #aaa;"></div>
+    <div class="panel" style="justify-content: center; background: #000; border-radius: 8px; border: 1px solid #222;">
+        <div id="player-info" style="text-align: center;">
+            <div style="font-size: 10px; color: #555;">CURRENT BATTER</div>
+            <div id="active-player" style="font-size: 18px; font-weight: 900; color: #fff;">--</div>
+            <div id="active-stat" style="font-size: 10px; color: var(--gold); margin-top: 5px;">LOADED: 0/15</div>
+        </div>
     </div>
 </div>
 
 <script>
     const v = document.getElementById('v');
     const resMain = document.getElementById('res-main');
-    const resSub = document.getElementById('res-sub');
+    const activePlayer = document.getElementById('active-player');
+    const activeStat = document.getElementById('active-stat');
     const sz = document.getElementById('strike-zone');
     const swz = document.getElementById('swing-zone');
 
+    // Dynamic Playlist Logic
+    const playerIDs = { ohtani: 660271, judge: 592450, trout: 545361 };
     let playlist = [];
     let pIdx = 0;
-    let processed = false;
+    let swingProcessed = false;
 
-    async function loadLegend(name, id) {
-        resMain.innerText = `FETCHING ${name}...`;
-        pIdx = 0;
-        
-        // Fetch playLog for 2025 and 2026 to ensure 15 HRs
-        const url = `https://statsapi.mlb.com/api/v1/people/${id}/stats?stats=playLog&group=hitting&season=2026`;
-        const res = await fetch(url);
-        const data = await res.json();
-        
-        playlist = data.stats[0].splits
-            .filter(p => p.result.event === "Home Run")
-            .slice(0, 15)
-            .map(hr => ({
-                src: `https://fastball-clips.mlb.com/${hr.game.gamePk}/${hr.playId}.mp4`,
-                x: hr.pitchData.coordinates.pX,
-                y: hr.pitchData.coordinates.pZ,
-                t: 2.7, // Global timing for pre-cut clips
-                desc: hr.result.description
-            }));
+    // Initialization: Fetches Home Runs for the "Big Three" automatically
+    async function startGame() {
+        document.getElementById('overlay').style.opacity = '0';
+        setTimeout(() => document.getElementById('overlay').style.display = 'none', 500);
 
-        if(playlist.length > 0) playNext();
+        // For the birthday build, we default to Judge's latest 15
+        await loadPlayerHRs('judge');
     }
 
-    function playNext() {
-        if(pIdx >= playlist.length) { resMain.innerText = "ALL 15 COMPLETE!"; return; }
-        v.src = playlist[pIdx].src;
-        v.load();
-        processed = false;
-        resMain.innerText = "READY...";
-        resSub.innerText = `HR #${pIdx + 1} of 15`;
-    }
-
-    swz.addEventListener('touchstart', (e) => {
-        if(processed || !playlist[pIdx]) return;
-        const now = v.currentTime;
-        const p = playlist[pIdx];
+    async function loadPlayerHRs(name) {
+        activePlayer.innerText = name.toUpperCase();
+        resMain.innerText = "FETCHING VIDEO...";
         
-        // Timing window for the pitch crossing the plate
-        if(Math.abs(now - p.t) > 0.8) return;
-        
-        processed = true;
-        const rect = sz.getBoundingClientRect();
-        const tx = e.touches[0].clientX - rect.left;
-        const ty = e.touches[0].clientY - rect.top;
-        
-        // Map Statcast X/Y to UI
-        const px = ((p.x / 1.5) + 0.5) * sz.offsetWidth;
-        const py = (0.5 - (p.y / 2.0)) * sz.offsetHeight;
+        try {
+            const id = playerIDs[name];
+            // Fetching 2025-2026 Season Data
+            const response = await fetch(`https://statsapi.mlb.com/api/v1/people/${id}/stats?stats=playLog&group=hitting&season=2026`);
+            const data = await response.json();
+            
+            playlist = data.stats[0].splits
+                .filter(p => p.result.event === "Home Run")
+                .slice(0, 15)
+                .map(hr => ({
+                    src: `https://fastball-clips.mlb.com/${hr.game.gamePk}/${hr.playId}.mp4`,
+                    x: hr.pitchData.coordinates.pX,
+                    y: hr.pitchData.coordinates.pZ,
+                    v: hr.pitchData.startSpeed,
+                    t: 2.8 // Standardized timing for pre-cut MLB clips
+                }));
 
-        const ball = document.createElement('div'); ball.className='asset ball'; ball.style.left=px+'px'; ball.style.top=py+'px'; sz.appendChild(ball);
-        const bat = document.createElement('div'); bat.className='asset bat'; bat.style.left=tx+'px'; bat.style.top=ty+'px'; sz.appendChild(bat);
-
-        const dist = Math.sqrt((tx - px)**2 + (ty - py)**2);
-        if(dist < 35) {
-            resMain.innerText = "BOOM! HOME RUN!";
-        } else {
-            resMain.innerText = "WHIFF!";
+            if(playlist.length > 0) playVideo();
+        } catch (e) {
+            resMain.innerText = "CONNECTION ERROR";
         }
+    }
+
+    function playVideo() {
+        if(pIdx >= playlist.length) {
+            resMain.innerText = "SERIES COMPLETE!";
+            return;
+        }
+
+        swingProcessed = false;
+        activeStat.innerText = `HOME RUN: ${pIdx + 1} / 15`;
         
+        v.src = playlist[pIdx].src;
+        v.load(); 
+        
+        // This ensures the video plays only when it's buffered enough to be smooth
+        v.oncanplaythrough = () => {
+            v.play();
+            resMain.innerText = "WATCH FOR PITCH...";
+        };
+    }
+
+    // Interaction Logic
+    swz.addEventListener('touchstart', (e) => {
+        if(swingProcessed || !playlist[pIdx]) return;
+        
+        const now = v.currentTime;
+        const target = playlist[pIdx];
+
+        // 0.6s window for "Impact"
+        if(Math.abs(now - target.t) > 0.6) return;
+
+        swingProcessed = true;
+        const rect = sz.getBoundingClientRect();
+        const touchX = e.touches[0].clientX - rect.left;
+        const touchY = e.touches[0].clientY - rect.top;
+
+        // Statcast Translation (1.5x Horizontal / 2.0y Vertical scaling)
+        const ballX = ((target.x / 1.5) + 0.5) * sz.offsetWidth;
+        const ballY = (0.5 - (target.y / 2.0)) * sz.offsetHeight;
+
+        // Visual Feedback
+        createAsset('ball', ballX, ballY);
+        createAsset('bat', touchX, touchY);
+
+        const dist = Math.sqrt(Math.pow(touchX - ballX, 2) + Math.pow(touchY - ballY, 2));
+        
+        if(dist < 35) {
+            resMain.innerText = "CRUSHED! HOME RUN!";
+        } else {
+            resMain.innerText = "FOUL TIP / MISS";
+        }
+
         setTimeout(() => {
             sz.innerHTML = "";
             pIdx++;
-            playNext();
-        }, 2500);
+            playVideo();
+        }, 3000);
     });
 
-    v.onended = () => { if(!processed) { pIdx++; playNext(); } };
+    function createAsset(type, x, y) {
+        const div = document.createElement('div');
+        div.className = `asset ${type}`;
+        div.style.left = `${x}px`;
+        div.style.top = `${y}px`;
+        sz.appendChild(div);
+    }
+
+    // Auto-advance if no swing
+    v.onended = () => {
+        if(!swingProcessed) {
+            pIdx++;
+            playVideo();
+        }
+    };
 </script>
 </body>
 </html>
