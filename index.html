@@ -1,49 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Cronin Baseball: MLB Stream Engine</title>
+    <style>
+        :root { --gold: #f1c40f; --blue: #3498db; --bg: #050505; --grass: #1b3318; --board: #111; --wood: #8b5a2b; }
+        body { margin: 0; background: #000; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
+        
+        #banner { height: 3.5vh; background: #000; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--gold); border-bottom: 1px solid #222; }
+        #v-frame { width: 100%; height: 60vh; overflow: hidden; position: relative; background: #000; border-bottom: 2px solid #222; }
+        video { height: 100%; width: auto; object-fit: contain; position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
+
+        #deck { height: 36.5vh; display: grid; grid-template-columns: 0.95fr 1.05fr; background: #050505; padding: 4px 8px; gap: 8px; padding-bottom: env(safe-area-inset-bottom); }
+        .panel { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; position: relative; }
+
+        #scoreboard-strip { width: 100%; height: 5vh; background: var(--board); border: 1px solid #333; border-radius: 4px; display: flex; align-items: center; justify-content: space-around; padding: 0 5px; }
+        .stat-unit { display: flex; flex-direction: column; align-items: center; }
+        .stat-label { font-size: 7px; color: #666; font-weight: 800; }
+        .dots { display: flex; gap: 2px; margin-top: 2px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: #222; border: 1px solid #333; }
+        .s-on { background: var(--gold); box-shadow: 0 0 5px var(--gold); } 
+        
+        #result-card { width: 100%; height: 6.5vh; background: var(--board); border: 1.5px solid #444; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; text-align: center; }
+        #res-main { color: var(--gold); font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+        #res-sub { color: #aaa; font-size: 9px; font-family: monospace; margin-top: 2px; }
+
+        #swing-zone { width: 100%; flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; background: rgba(255,255,255,0.02); border-radius: 4px; margin-top: 4px; border: 1px dashed #222; }
+        #strike-zone { width: 85px; height: 125px; border: 2px solid #fff; background: rgba(255,255,255,0.03); position: relative; pointer-events: none; }
+        
+        .ball-asset { position: absolute; width: 20px; height: 20px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 5; box-shadow: 0 0 10px #fff; }
+        .bat-asset { position: absolute; width: 32px; height: 32px; background: var(--wood); border-radius: 50%; transform: translate(-50%, -50%); z-index: 4; border: 2px solid #000; }
+        
+        #tap-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; display: flex; align-items: center; justify-content: center; font-weight: 900; color: var(--gold); }
+    </style>
+</head>
+<body>
+
+<div id="tap-overlay">TAP TO START GAME</div>
+
+<div id="banner">MLB LIVE STATCAST STREAM</div>
+<div id="v-frame"><video id="v" playsinline></video></div>
+
+<div id="deck">
+    <div class="panel">
+        <div id="scoreboard-strip">
+            <div class="stat-unit"><span class="stat-label">STRIKES</span><div class="dots" id="s-dots"></div></div>
+            <div class="stat-unit"><span class="stat-label">OUTS</span><div class="dots" id="o-dots"></div></div>
+        </div>
+        <div style="flex-grow:1; display:flex; align-items:center; color:#333; font-size:10px;">V.04.18.26</div>
+    </div>
+    <div class="panel">
+        <div id="result-card"><div id="res-main">WAITING</div><div id="res-sub">STREAMING FROM MLB FORGE</div></div>
+        <div id="swing-zone"><div id="strike-zone"></div></div>
+    </div>
+</div>
+
 <script>
     const v = document.getElementById('v');
     const sz = document.getElementById('strike-zone');
     const swz = document.getElementById('swing-zone');
     const resMain = document.getElementById('res-main');
     const resSub = document.getElementById('res-sub');
+    const overlay = document.getElementById('tap-overlay');
 
-    // MLB Links wrapped in a CORS Proxy to ensure they play in your browser
-    const proxy = "https://corsproxy.io/?"; 
+    const proxy = "https://corsproxy.io/?";
     const playlist = [
-        { 
-            src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/530e9f0d-e2e60f06-81676f4e-csvm-diamondx64-asset_1280x720_59_4000K.mp4", 
-            t: 3.1, x: -0.22, y: 0.85, type: "FASTBALL", mph: 100 
-        },
-        { 
-            src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/8e90656a-360495f4-3d9804ef-csvm-diamondx64-asset_1280x720_59_4000K.mp4", 
-            t: 3.2, x: 0.35, y: -0.40, type: "SLIDER", mph: 88 
-        }
+        { src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/530e9f0d-e2e60f06-81676f4e-csvm-diamondx64-asset_1280x720_59_4000K.mp4", t: 3.12, x: -0.22, y: 0.85, type: "FASTBALL", mph: 100 },
+        { src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/8e90656a-360495f4-3d9804ef-csvm-diamondx64-asset_1280x720_59_4000K.mp4", t: 3.25, x: 0.35, y: -0.40, type: "SLIDER", mph: 88 },
+        { src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/58957422-96942468-6c84381e-csvm-diamondx64-asset_1280x720_59_4000K.mp4", t: 3.05, x: -0.05, y: 0.95, type: "FASTBALL", mph: 101 }
     ];
 
     let pIdx = 0;
-    let g = { b:0, s:0, o:0, r:0, processed: false };
+    let g = { s:0, o:0, processed: false };
+
+    overlay.onclick = () => { overlay.style.display = 'none'; loadPitch(); };
 
     function loadPitch() {
-        if(pIdx >= playlist.length) { pIdx = 0; }
-        
-        // This is the magic line: it adds the proxy to the MLB URL
+        if(pIdx >= playlist.length) pIdx = 0;
         v.src = proxy + encodeURIComponent(playlist[pIdx].src);
-        
         v.load();
-        v.play().catch(e => {
-            resMain.innerText = "TAP TO START";
-            resSub.innerText = "Browser blocked autoplay. Tap the screen!";
-        });
-        
+        v.play();
         g.processed = false;
-        resMain.innerText = "EYES UP...";
-        resSub.innerText = `READY: ${playlist[pIdx].type}`;
+        resMain.innerText = "PITCH COMING...";
+        resSub.innerText = `TYPE: ${playlist[pIdx].type} | ${playlist[pIdx].mph} MPH`;
     }
 
-    // Rest of your swing logic remains the same...
     swz.addEventListener('touchstart', (e) => {
         e.preventDefault();
         const p = playlist[pIdx];
         const now = v.currentTime;
-        if(g.processed || Math.abs(now - p.t) > 0.8) return;
+        if(g.processed || Math.abs(now - p.t) > 0.7) return;
         
         g.processed = true;
         const rect = sz.getBoundingClientRect();
@@ -57,8 +104,8 @@
         const bat = document.createElement('div'); bat.className='bat-asset'; bat.style.left=tx+'px'; bat.style.top=ty+'px'; sz.appendChild(bat);
         const ball = document.createElement('div'); ball.className='ball-asset'; ball.style.left=px+'px'; ball.style.top=py+'px'; sz.appendChild(ball);
 
-        if(dist < 35) {
-            resMain.innerText = "SQUARED UP!";
+        if(dist < 32) {
+            resMain.innerText = "CRUSHED!";
             setTimeout(nextPitch, 2500);
         } else {
             resMain.innerText = "STRIKE (WHIFF)";
@@ -74,13 +121,13 @@
     }
 
     function updateUI() {
-        const render = (id, cur, max, cls) => {
-            let h = ''; for(let i=0; i<max; i++) h += `<div class="dot ${i<cur?cls:''}"></div>`;
-            document.getElementById(id).innerHTML = h;
-        };
-        render('b-dots', g.b, 3, 'b-on'); render('s-dots', g.s, 2, 's-on'); render('o-dots', g.o, 2, 'o-on');
+        let h = ''; for(let i=0; i<3; i++) h += `<div class="dot ${i<g.s?'s-on':''}"></div>`;
+        document.getElementById('s-dots').innerHTML = h;
     }
 
-    loadPitch();
-    updateUI();
+    v.onended = () => {
+        if(!g.processed) { resMain.innerText = "STRIKE (TAKEN)"; g.s++; updateUI(); setTimeout(nextPitch, 2000); }
+    };
 </script>
+</body>
+</html>
