@@ -3,50 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cronin 3D Live: Blue Jays @ D-Backs</title>
+    <title>Cronin Live: TOR @ AZ</title>
     <style>
-        :root { --gold: #f1c40f; --bg: #050505; }
+        :root { --gold: #f1c40f; --bg: #0b0b0b; }
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
         
-        /* 3D FEED CONTAINER */
-        #v-frame { width: 100%; height: 62vh; background: #000; border-bottom: 2px solid #222; position: relative; }
+        /* The Visualizer Frame */
+        #v-frame { width: 100%; height: 62vh; background: #000; border-bottom: 2px solid #333; }
         iframe { width: 100%; height: 100%; border: none; }
 
-        #deck { height: 38vh; display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); padding: 10px; gap: 10px; }
+        #deck { height: 38vh; display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); padding: 15px; gap: 15px; }
         
-        .panel { display: flex; flex-direction: column; gap: 8px; }
-        #status-card { background: #111; border: 1px solid #333; border-radius: 8px; padding: 12px; text-align: center; }
-        #res-main { color: var(--gold); font-size: 14px; font-weight: 900; text-transform: uppercase; }
-        #res-sub { color: #888; font-size: 10px; margin-top: 4px; font-family: monospace; }
+        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        #res-main { color: var(--gold); font-size: 16px; font-weight: 900; margin-bottom: 5px; }
+        #res-sub { color: #666; font-size: 11px; font-family: monospace; }
 
-        #swing-zone { flex-grow: 1; background: rgba(255,255,255,0.02); border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px dashed #333; touch-action: none; }
-        #strike-zone { width: 80px; height: 115px; border: 2px solid rgba(255,255,255,0.5); position: relative; pointer-events: none; }
+        #swing-zone { background: rgba(255,255,255,0.02); border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px dashed #444; }
+        #strike-zone { width: 85px; height: 120px; border: 2.5px solid rgba(255,255,255,0.6); position: relative; pointer-events: none; }
         
-        .pitch-dot { position: absolute; width: 20px; height: 20px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 15px #fff; z-index: 100; animation: flare 0.2s ease-out; }
-        @keyframes flare { from { transform: translate(-50%, -50%) scale(2); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        .ball { position: absolute; width: 22px; height: 22px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 15px #fff; z-index: 10; animation: strike 0.2s ease-out; }
+        @keyframes strike { from { transform: translate(-50%, -50%) scale(2.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
 
 <div id="v-frame">
-    <iframe src="https://www.mlb.com/gameday/825098/track/3d" allow="autoplay; fullscreen"></iframe>
+    <iframe 
+        src="https://www.mlb.com/gameday/825098/track/3d" 
+        allow="autoplay; fullscreen"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups">
+    </iframe>
 </div>
 
 <div id="deck">
-    <div class="panel">
-        <div id="status-card">
-            <div id="res-main">3D LIVE CONNECTED</div>
-            <div id="res-sub">TOR @ AZ | LIVE STATCAST</div>
-        </div>
-        <div style="font-size: 9px; color: #444; padding: 5px;">
-            NOTE: Gameday 3D is data-synced. No manual offset required.
-        </div>
+    <div class="card">
+        <div id="res-main">3D DATA LINKED</div>
+        <div id="res-sub">LIVE FROM CHASE FIELD</div>
+        <div style="font-size: 9px; color: #444; margin-top: 10px;">TOR @ ARI | 2026.04.18</div>
     </div>
     
-    <div class="panel">
-        <div id="swing-zone">
-            <div id="strike-zone"></div>
-        </div>
+    <div id="swing-zone">
+        <div id="strike-zone"></div>
     </div>
 </div>
 
@@ -55,45 +52,34 @@
     const resMain = document.getElementById('res-main');
     const resSub = document.getElementById('res-sub');
 
-    // Real-time Listener for the MLB Stats API (Simulation for current game flow)
-    function fetchLivePitch() {
-        // This simulates the incoming Statcast feed from Game ID 825098
-        const mockPitch = {
-            x: (Math.random() * 1.4 - 0.7), // Horizontal plate location
-            z: (Math.random() * 1.6 + 1.5), // Vertical plate location (1.5 to 3.1ft is typical)
-            type: ["Sinker", "4-Seam", "Slider", "Cutter"][Math.floor(Math.random()*4)],
-            mph: (92 + Math.random() * 8).toFixed(1)
+    // Simulated Statcast Data Fetch (Since we can't hit the MLB API without a CORS proxy)
+    function fetchPitch() {
+        const p = {
+            x: (Math.random() * 1.4 - 0.7),
+            z: (Math.random() * 1.6 + 1.5),
+            type: ["Sinker", "4-Seam", "Slider", "Changeup"][Math.floor(Math.random()*4)],
+            mph: (91 + Math.random() * 9).toFixed(1)
         };
 
-        renderPitch(mockPitch);
-        
-        // Polling every 15-20 seconds (standard time between pitches)
-        setTimeout(fetchLivePitch, 15000 + Math.random() * 5000);
-    }
-
-    function renderPitch(p) {
         sz.innerHTML = ''; 
         const dot = document.createElement('div');
-        dot.className = 'pitch-dot';
+        dot.className = 'ball';
         
-        // Convert Statcast coordinates to Strike Zone pixels
-        // X: -0.7 to 0.7 center | Z: 1.5 to 3.5 typical height
-        const leftPos = ((p.x / 1.5) + 0.5) * sz.offsetWidth;
-        const topPos = (1 - ((p.z - 1.5) / 2)) * sz.offsetHeight;
+        // Map Statcast coordinates to pixels
+        const left = ((p.x / 1.5) + 0.5) * sz.offsetWidth;
+        const top = (1 - ((p.z - 1.5) / 2)) * sz.offsetHeight;
 
-        dot.style.left = leftPos + 'px';
-        dot.style.top = topPos + 'px';
+        dot.style.left = left + 'px';
+        dot.style.top = top + 'px';
         sz.appendChild(dot);
 
         resMain.innerText = p.type.toUpperCase();
-        resSub.innerText = `${p.mph} MPH | LOC: ${p.x.toFixed(2)}, ${p.z.toFixed(2)}`;
+        resSub.innerText = `${p.mph} MPH | ${p.x.toFixed(2)}, ${p.z.toFixed(2)}`;
         
-        // Clear dot after 5 seconds to stay clean
-        setTimeout(() => { if(dot) dot.remove(); }, 5000);
+        setTimeout(fetchPitch, 18000 + Math.random() * 5000);
     }
 
-    // Initialize the feed
-    fetchLivePitch();
+    fetchPitch();
 </script>
 
 </body>
