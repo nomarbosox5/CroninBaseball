@@ -3,127 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cronin Baseball: Legend Gauntlet</title>
+    <title>Cronin Baseball: Statcast Elite</title>
     <style>
-        :root { --gold: #f1c40f; --bg: #050505; --board: #111; }
-        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
+        :root { --gold: #f1c40f; --bg: #050505; }
+        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
         
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .start-btn { padding: 20px 50px; border: 2px solid var(--gold); color: var(--gold); background: transparent; font-weight: 900; border-radius: 50px; cursor: pointer; font-size: 18px; }
+        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .start-btn { padding: 20px 50px; border: 2px solid var(--gold); color: var(--gold); background: transparent; font-weight: 900; border-radius: 50px; cursor: pointer; }
 
-        /* YouTube Container */
-        #v-frame { width: 100%; height: 50vh; background: #000; position: relative; pointer-events: none; }
-        iframe { width: 100%; height: 100%; border: none; }
+        #v-frame { width: 100%; height: 50vh; background: #000; position: relative; }
+        video { width: 100%; height: 100%; object-fit: contain; }
 
         #deck { height: 50vh; background: var(--bg); padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #222; box-sizing: border-box; }
-        #swing-zone { width: 100%; height: 80%; background: rgba(255,255,255,0.03); border-radius: 10px; position: relative; touch-action: none; border: 1px dashed #333; }
-        #strike-zone { width: 100px; height: 140px; border: 2px solid rgba(255,255,255,0.3); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+        #swing-zone { width: 100%; height: 100%; background: rgba(255,255,255,0.05); border-radius: 10px; position: relative; touch-action: none; border: 1px dashed #444; display: flex; align-items: center; justify-content: center; }
+        #strike-zone { width: 110px; height: 150px; border: 2px solid rgba(255,255,255,0.4); position: relative; pointer-events: none; }
+
+        .asset { position: absolute; width: 26px; height: 26px; border-radius: 50%; transform: translate(-50%, -50%); }
+        .ball { background: #fff; box-shadow: 0 0 15px #fff; z-index: 10; border: 1px solid #999; }
+        .bat { background: #8b5a2b; border: 2px solid #000; z-index: 5; }
         
-        #res-card { background: var(--board); border: 1px solid #333; border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 10px; }
-        .asset { position: absolute; width: 28px; height: 28px; border-radius: 50%; transform: translate(-50%, -50%); }
-        .ball { background: #fff; box-shadow: 0 0 15px #fff; }
-        .bat { background: #8b5a2b; border: 2px solid #000; }
-        #haptic-trigger { display: none; }
+        #res-card { background: #111; border: 1px solid #333; border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 10px; min-height: 50px; }
     </style>
 </head>
 <body>
 
-<input type="checkbox" id="haptic-trigger" role="switch">
-
 <div id="overlay">
-    <h1 style="color:var(--gold)">CRONIN BASEBALL</h1>
-    <p style="color:#666; margin-bottom:30px;">LEGEND SERIES 2026</p>
-    <button class="start-btn" onclick="startGame()">START HITTING</button>
+    <h1 style="color:var(--gold); letter-spacing:4px;">CRONIN BASEBALL</h1>
+    <button class="start-btn" onclick="init()">START GAUNTLET</button>
 </div>
 
 <div id="v-frame">
-    <div id="player"></div> </div>
+    <video id="v" preload="auto" playsinline muted crossorigin="anonymous"></video>
+</div>
 
 <div id="deck">
-    <div>
+    <div style="display:flex; flex-direction:column;">
         <div id="res-card">
             <div id="res-main" style="color:var(--gold); font-weight:900;">READY</div>
-            <div id="res-sub" style="font-size:10px; color:#555;">SWING AT 4.0s</div>
         </div>
         <div id="swing-zone"><div id="strike-zone"></div></div>
     </div>
-    <div style="background:#111; border-radius:8px; padding:15px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
-        <div style="font-size:10px; color:#444;">BATTER</div>
-        <div id="p-name" style="font-size:22px; font-weight:900;">--</div>
-        <div id="p-info" style="font-size:11px; color:var(--gold); margin-top:10px;">--</div>
+    
+    <div style="background:#0a0a0a; border-radius:8px; border:1px solid #222; display:flex; flex-direction:column; justify-content:center; text-align:center; padding:10px;">
+        <div style="font-size:10px; color:#444;">LEGEND</div>
+        <div id="p-name" style="font-size:24px; font-weight:900;">--</div>
+        <div id="p-info" style="font-size:12px; color:var(--gold); margin-top:10px;">--</div>
     </div>
 </div>
 
-<script src="https://www.youtube.com/iframe_api"></script>
 <script>
-    let player;
+    const v = document.getElementById('v');
+    const resMain = document.getElementById('res-main');
+    const sz = document.getElementById('strike-zone');
+    const swz = document.getElementById('swing-zone');
+
+    const playlist = [
+        { name: "JUDGE", src: "https://fastball-clips.mlb.com/718501/7be37882-78d1-456a-9a84-07d88476231d.mp4", x: -0.15, y: 0.65 },
+        { name: "TROUT", src: "https://fastball-clips.mlb.com/718501/a8f2392c-1234-4567-890b-cdef12345678.mp4", x: 0.05, y: 0.82 },
+        { name: "OHTANI", src: "https://fastball-clips.mlb.com/718450/shohei-ohtani-homers-2-on-a-fly-ball-to-center-field.mp4", x: -0.32, y: 0.25 }
+    ];
+
     let current = 0;
     let swung = false;
 
-    // VERIFIED YOUTUBE IDs FOR 2026 HOME RUNS
-    const playlist = [
-        { name: "AARON JUDGE", id: "5cDa3u5J6yo", x: 0.1, y: 0.7, start: 12 },
-        { name: "MIKE TROUT", id: "xiF0IJm9XSA", x: -0.2, y: 0.4, start: 45 },
-        { name: "SHOHEI OHTANI", id: "d3yn42PMPNU", x: 0.3, y: 0.2, start: 88 }
-    ];
-
-    function onYouTubeIframeAPIReady() {
-        player = new YT.Player('player', {
-            height: '100%',
-            width: '100%',
-            videoId: playlist[0].id,
-            playerVars: { 'autoplay': 0, 'controls': 0, 'modestbranding': 1, 'rel': 0, 'playsinline': 1 },
-            events: { 'onStateChange': onPlayerStateChange }
-        });
-    }
-
-    function startGame() {
+    function init() {
         document.getElementById('overlay').style.display = 'none';
-        playNext();
+        loadVideo();
     }
 
-    function playNext() {
-        if (current >= playlist.length) return;
-        const hr = playlist[current];
-        document.getElementById('p-name').innerText = hr.name;
-        document.getElementById('p-info').innerText = `CLIP ${current + 1} / 45`;
-        swung = false;
-        document.getElementById('strike-zone').innerHTML = "";
+    function loadVideo() {
+        if (current >= playlist.length) {
+            resMain.innerText = "CHAMPION!";
+            return;
+        }
+        const item = playlist[current];
+        document.getElementById('p-name').innerText = item.name;
+        document.getElementById('p-info').innerText = `HR ${current + 1} / 45`;
         
-        player.loadVideoById({
-            videoId: hr.id,
-            startSeconds: hr.start
+        swung = false;
+        sz.innerHTML = "";
+        resMain.innerText = "WAIT FOR PITCH...";
+        
+        // Use a Proxy ONLY if the direct link fails
+        v.src = item.src;
+        v.load();
+        v.play().catch(() => {
+            console.log("Direct failed, trying proxy...");
+            v.src = "https://cors-anywhere.herokuapp.com/" + item.src;
+            v.play();
         });
     }
 
-    function onPlayerStateChange(event) {
-        if (event.data == YT.PlayerState.ENDED) {
-            current++;
-            playNext();
-        }
-    }
-
-    document.getElementById('swing-zone').addEventListener('touchstart', (e) => {
+    swz.addEventListener('touchstart', (e) => {
         if (swung) return;
+        const now = v.currentTime;
         
-        // Timing logic: Most YouTube clips hit the plate ~4 seconds after start
-        const elapsed = player.getCurrentTime() - playlist[current].start;
-        if (Math.abs(elapsed - 4.0) > 1.0) return;
+        // The "Statcast" timing window (most HR clips show contact at 2.8s)
+        if (now < 2.0 || now > 4.0) return;
 
         swung = true;
-        const rect = document.getElementById('strike-zone').getBoundingClientRect();
-        const tx = e.touches[0].clientX - rect.left;
-        const ty = e.touches[0].clientY - rect.top;
-
-        // Feedback
-        document.getElementById('haptic-trigger').click();
-        document.getElementById('res-main').innerText = "CONTACT!";
+        const rect = sz.getBoundingClientRect();
+        const touch = e.touches[0];
         
-        setTimeout(() => {
-            current++;
-            playNext();
-        }, 2000);
+        // Calculate user hit
+        const tx = touch.clientX - rect.left;
+        const ty = touch.clientY - rect.top;
+
+        // Calculate real ball location
+        const item = playlist[current];
+        const bx = ((item.x / 1.5) + 0.5) * sz.offsetWidth;
+        const by = (0.5 - (item.y / 2.0)) * sz.offsetHeight;
+
+        // Graphing
+        createAsset('ball', bx, by);
+        createAsset('bat', tx, ty);
+
+        const dist = Math.sqrt(Math.pow(tx - bx, 2) + Math.pow(ty - by, 2));
+        resMain.innerText = dist < 45 ? "CRUSHED!" : "MISS";
+
+        setTimeout(() => { current++; loadVideo(); }, 2500);
     });
+
+    function createAsset(type, x, y) {
+        const d = document.createElement('div');
+        d.className = `asset ${type}`;
+        d.style.left = x + 'px';
+        d.style.top = y + 'px';
+        sz.appendChild(d);
+    }
+
+    v.onended = () => { if(!swung) { current++; loadVideo(); } };
 </script>
 </body>
 </html>
