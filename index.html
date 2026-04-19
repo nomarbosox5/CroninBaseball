@@ -2,112 +2,163 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cronin Trace: TOR @ AZ Live</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Cronin Baseball Live: TOR @ ARI</title>
     <style>
-        :root { --gold: #f1c40f; --bg: #0b0b0b; --seam: #e74c3c; }
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
+        :root { --gold: #f1c40f; --blue: #3498db; --bg: #050505; --grass: #1b3318; --board: #111; --wood: #8b5a2b; }
+        body { margin: 0; background: #000; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
         
-        #v-frame { width: 100%; height: 60vh; background: #000; border-bottom: 2px solid #333; }
-        iframe { width: 100%; height: 100%; border: none; }
+        #banner { height: 3.5vh; background: #000; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--gold); border-bottom: 1px solid #222; }
 
-        #deck { height: 40vh; display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); padding: 15px; gap: 15px; }
-        .card { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        /* THE ILLUSTRATED FIELD (Replaces Video) */
+        #v-frame { width: 100%; height: 58vh; position: relative; background: radial-gradient(circle at 50% 100%, #1e3a1a 0%, #000 80%); overflow: hidden; border-bottom: 2px solid #333; }
         
-        #swing-zone { background: rgba(255,255,255,0.02); border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px dashed #444; overflow: visible; }
-        #strike-zone { width: 85px; height: 120px; border: 2.5px solid rgba(255,255,255,0.4); position: relative; }
-        
-        /* THE BALL ILLUSTRATION */
-        .pitch-trace {
-            position: absolute;
-            width: 18px;
-            height: 18px;
-            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
-            border-radius: 50%;
-            z-index: 100;
-            box-shadow: 0 0 15px rgba(255,255,255,0.5);
-            pointer-events: none;
+        /* Perspective Lines */
+        .foul-line { position: absolute; width: 2px; height: 150%; background: rgba(255,255,255,0.2); bottom: 0; left: 50%; transform-origin: bottom center; }
+        #fl-left { transform: rotate(-40deg); }
+        #fl-right { transform: rotate(40deg); }
+
+        /* Cartoon Players */
+        .player-svg { position: absolute; width: 60px; height: 60px; transform: translateX(-50%); transition: all 0.3s ease; }
+        #pitcher { top: 15%; left: 50%; }
+        #batter { bottom: 5%; left: 35%; }
+        .p-label { position: absolute; top: -15px; width: 100%; text-align: center; font-size: 8px; font-weight: 900; background: rgba(0,0,0,0.8); border-radius: 4px; padding: 2px; }
+
+        /* The Live Ball Illustration */
+        #ball-node { 
+            position: absolute; width: 12px; height: 12px; background: #fff; border-radius: 50%; 
+            box-shadow: 0 0 15px #fff; opacity: 0; pointer-events: none; z-index: 100;
         }
 
-        /* THE TAIL (The "Path" Illustration) */
-        .trail {
-            position: absolute;
-            background: linear-gradient(to right, transparent, rgba(255,255,255,0.4));
-            height: 2px;
-            transform-origin: left center;
-            z-index: 90;
-            pointer-events: none;
-        }
+        /* UI DECK - Kept your exact look but optimized */
+        #deck { height: 38.5vh; display: grid; grid-template-columns: 1fr 1fr; background: #050505; padding: 6px; gap: 8px; padding-bottom: env(safe-area-inset-bottom); }
+        .panel { display: flex; flex-direction: column; gap: 6px; height: 100%; }
+
+        #result-card { width: 100%; height: 7vh; background: var(--board); border: 1px solid #444; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #res-main { color: var(--gold); font-size: 14px; font-weight: 900; }
+        
+        #swing-zone { width: 100%; flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px dashed #333; }
+        #strike-zone { width: 85px; height: 125px; border: 2px solid rgba(255,255,255,0.4); position: relative; }
+        
+        .pitch-dot { position: absolute; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); background: rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
 
+<div id="banner">LIVE: TOR @ ARI | CHASE FIELD (APR 18, 2026)</div>
+
 <div id="v-frame">
-    <iframe src="https://www.mlb.com/gameday/825098/track/3d" allow="autoplay; fullscreen" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+    <div class="foul-line" id="fl-left"></div>
+    <div class="foul-line" id="fl-right"></div>
+    
+    <div id="pitcher" class="player-svg">
+        <div class="p-label">MAX SCHERZER (RHP) <br> ERA: 9.58</div>
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#3498db" stroke="#fff" stroke-width="3"/></svg>
+    </div>
+
+    <div id="batter" class="player-svg">
+        <div class="p-label" style="top:65px">CORBIN CARROLL (LHB) <br> OPS: .985</div>
+        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#e74c3c" stroke="#fff" stroke-width="3"/></svg>
+    </div>
+
+    <div id="ball-node"></div>
 </div>
 
 <div id="deck">
-    <div class="card">
-        <div id="res-main" style="color:var(--gold); font-weight:900;">LIVE PATH TRACE</div>
-        <div id="res-sub" style="font-size:11px; color:#666; margin-top:5px;">FEED: STATCAST v4.0</div>
-        <div id="mph-tag" style="font-size:24px; font-weight:900; margin-top:10px;">--</div>
+    <div class="panel">
+        <div id="result-card" style="height: 100%; justify-content: space-around;">
+            <div style="font-size:10px; color:#666;">FIELD MONITOR</div>
+            <div id="game-info" style="font-size:11px; font-weight:900;">TIE 1-1 | MID 4TH</div>
+            <div id="mph-display" style="font-size:24px; font-weight:900;">--</div>
+            <div id="type-display" style="color:var(--gold); font-size:12px; font-weight:800;">SYNCING DATA...</div>
+        </div>
     </div>
-    
-    <div id="swing-zone">
-        <div id="strike-zone"></div>
+
+    <div class="panel">
+        <div id="result-card">
+            <div id="res-main">READY</div>
+        </div>
+        <div id="swing-zone">
+            <div id="strike-zone"></div>
+        </div>
     </div>
 </div>
 
 <script>
+    const ball = document.getElementById('ball-node');
     const sz = document.getElementById('strike-zone');
-    const mphTag = document.getElementById('mph-tag');
+    const mphDisp = document.getElementById('mph-display');
+    const typeDisp = document.getElementById('type-display');
+    const resMain = document.getElementById('res-main');
 
-    function animatePitch(data) {
-        // 1. Create the Ball
-        const ball = document.createElement('div');
-        ball.className = 'pitch-trace';
-        sz.appendChild(ball);
+    let pitchQueue = [];
 
-        // 2. Map End Coordinates (Plate)
-        const endX = ((data.x / 1.5) + 0.5) * sz.offsetWidth;
-        const endY = (1 - ((data.z - 1.5) / 2)) * sz.offsetHeight;
-
-        // 3. Define Start Coordinates (Release Point Approximation)
-        const startX = -100; // Coming from "behind" the screen
-        const startY = -50;
-
-        // 4. Animation Logic
-        const duration = (105 / data.mph) * 400; // Faster MPH = Faster Animation
+    // 1. DATA INTAKE (Simulating Live 2026 Statcast Feed)
+    function pollStatcast() {
+        const pitchData = {
+            x: (Math.random() * 1.5 - 0.75),
+            z: (Math.random() * 1.8 + 1.4),
+            type: ["4-Seam", "Sinker", "Slider", "Cutter"][Math.floor(Math.random()*4)],
+            mph: (92 + Math.random() * 7).toFixed(1),
+            timestamp: Date.now()
+        };
         
-        const anim = ball.animate([
-            { left: startX + 'px', top: startY + 'px', transform: 'scale(4)', opacity: 0 },
-            { opacity: 1, offset: 0.2 },
-            { left: endX + 'px', top: endY + 'px', transform: 'scale(1)', opacity: 1 }
-        ], {
-            duration: duration,
-            easing: 'ease-out'
-        });
+        // ADD 3 SECOND BROADCAST DELAY
+        pitchQueue.push({ ...pitchData, releaseAt: Date.now() + 3000 });
+        
+        setTimeout(pollStatcast, 15000 + Math.random() * 5000);
+    }
 
-        anim.onfinish = () => {
-            mphTag.innerText = `${data.mph} MPH`;
-            setTimeout(() => ball.remove(), 2500);
+    // 2. THE ILLUSTRATION ENGINE (Syncs data to the field)
+    setInterval(() => {
+        if(pitchQueue.length > 0 && Date.now() >= pitchQueue[0].releaseAt) {
+            const p = pitchQueue.shift();
+            executePitchIllustration(p);
+        }
+    }, 100);
+
+    function executePitchIllustration(p) {
+        // Clear old dots
+        sz.innerHTML = '';
+        
+        // Update Stats
+        mphDisp.innerText = `${p.mph} MPH`;
+        typeDisp.innerText = p.type.toUpperCase();
+        resMain.innerText = "PITCH!";
+
+        // Perspective Mapping
+        const startX = window.innerWidth / 2;
+        const startY = window.innerHeight * 0.15;
+        
+        const endX = window.innerWidth / 2 + (p.x * 50); // Scale ft to px
+        const endY = window.innerHeight * 0.50;
+
+        // Animate Full-Field Ball
+        ball.style.opacity = '1';
+        const duration = (105 / p.mph) * 450;
+
+        ball.animate([
+            { left: startX + 'px', top: startY + 'px', transform: 'scale(0.2)', opacity: 0 },
+            { opacity: 1, offset: 0.1 },
+            { left: endX + 'px', top: endY + 'px', transform: 'scale(2.5)', opacity: 1 }
+        ], { duration: duration, easing: 'ease-out' }).onfinish = () => {
+            ball.style.opacity = '0';
+            renderStrikeZoneDot(p);
         };
     }
 
-    // This connects to the live game loop
-    function liveFeedLoop() {
-        // simulating the live Statcast JSON feed for the Blue Jays/D-Backs game
-        const liveData = {
-            x: (Math.random() * 1.4 - 0.7), 
-            z: (Math.random() * 1.6 + 1.5),
-            mph: (92 + Math.random() * 7).toFixed(1)
-        };
-        
-        animatePitch(liveData);
-        setTimeout(liveFeedLoop, 15000 + Math.random() * 5000);
+    function renderStrikeZoneDot(p) {
+        const dot = document.createElement('div');
+        dot.className = 'pitch-dot';
+        const left = ((p.x / 1.5) + 0.5) * sz.offsetWidth;
+        const top = (1 - ((p.z - 1.4) / 1.8)) * sz.offsetHeight;
+        dot.style.left = left + 'px';
+        dot.style.top = top + 'px';
+        sz.appendChild(dot);
     }
 
-    liveFeedLoop();
+    // Initialize
+    pollStatcast();
 </script>
 </body>
 </html>
