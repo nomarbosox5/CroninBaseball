@@ -2,82 +2,147 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cronin Baseball: WIN Engine</title>
+    <title>Statcast | Sinusoidal Release & Pro Focus</title>
     <style>
-        :root { --gold: #f1c40f; --bg: #050505; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; overflow: hidden; height: 100vh; }
-        
-        /* The Field View */
-        #field { height: 60vh; width: 100%; position: relative; background: #000; overflow: hidden; perspective: 1000px; border-bottom: 2px solid #222; }
-        
-        /* The Pitcher (Placeholder for your video) */
-        #pitcher { position: absolute; bottom: 40%; left: 50%; transform: translateX(-50%); width: 60px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 10px; }
-
-        /* THE BALL ENGINE */
-        #ball { 
-            position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%;
-            box-shadow: 0 0 10px #fff; display: none; z-index: 100;
-            transition: transform 0.4s linear, width 0.4s linear, height 0.4s linear, opacity 0.1s;
-        }
-
-        #ui { height: 40vh; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .zone { width: 120px; height: 160px; border: 2px solid var(--gold); position: relative; }
-        .btn { padding: 15px 40px; border: 2px solid var(--gold); color: var(--gold); background: transparent; border-radius: 50px; font-weight: 900; margin-top: 20px; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #broadcast-ui { position: absolute; bottom: 40px; left: 40px; color: white; }
+        .pitch-tag { background: rgba(0, 30, 60, 0.85); padding: 15px; border-left: 5px solid #00d4ff; box-shadow: 5px 5px 15px rgba(0,0,0,0.5); }
+        .label { font-size: 10px; letter-spacing: 2px; color: #00d4ff; margin-bottom: 2px; }
+        .value { font-size: 28px; font-weight: 800; }
     </style>
 </head>
 <body>
+    <div id="broadcast-ui">
+        <div class="pitch-tag">
+            <div class="label">LIVE TRACKING</div>
+            <div class="value">98<span style="font-size: 16px; font-weight: 400;"> MPH</span></div>
+            <div style="font-size: 12px; opacity: 0.8;">Sinker (LHP)</div>
+        </div>
+    </div>
 
-<div id="field">
-    <div id="pitcher"></div>
-    <div id="ball"></div>
-</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const pitchData = { x0: -2.1, y0: 55, z0: 5.8, vx0: 5.8, vy0: -144.1, vz0: -7.5, ax: -15.2, ay: 32.1, az: -10.5 };
 
-<div id="ui">
-    <div id="status" style="margin-bottom: 10px; font-weight: 900; color: var(--gold);">READY</div>
-    <div class="zone" id="swing-area"></div>
-    <button class="btn" onclick="throwPitch()">NEXT PITCH</button>
-</div>
+        let state = "REHEARSAL"; 
+        let startTime = performance.now();
+        let freezePoint = new THREE.Vector3();
 
-<script>
-    const ball = document.getElementById('ball');
-    const status = document.getElementById('status');
-    
-    // WIN Reality Data Points (Normalized)
-    const pitches = [
-        { type: "Fastball", speed: 400, endX: 50, endY: 60 }, // Middle-In
-        { type: "Slider", speed: 650, endX: 30, endY: 80 },   // Low-Away
-        { type: "Cutter", speed: 450, endX: 70, endY: 30 }    // High-In
-    ];
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    function throwPitch() {
-        const p = pitches[Math.floor(Math.random() * pitches.length)];
-        status.innerText = "RECOGNIZING...";
-        
-        // 1. Reset Ball to Pitcher's Hand
-        ball.style.display = "block";
-        ball.style.transition = "none";
-        ball.style.width = "4px";
-        ball.style.height = "4px";
-        ball.style.left = "50%";
-        ball.style.top = "55%";
-        ball.style.opacity = "1";
+        // --- STADIUM ASSETS ---
+        const grass = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshStandardMaterial({ color: 0x142900 }));
+        grass.rotation.x = -Math.PI / 2;
+        scene.add(grass);
 
-        // 2. Trigger "The WIN Logic" (Flight Path)
-        setTimeout(() => {
-            ball.style.transition = `all ${p.speed}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
-            ball.style.width = "40px"; // Gets bigger as it nears home
-            ball.style.height = "40px";
-            ball.style.left = p.endX + "%";
-            ball.style.top = "100%"; // Hits the "plate"
-            
-            // 3. Detect Timing
-            setTimeout(() => {
-                ball.style.opacity = "0";
-                status.innerText = p.type + " - " + (Math.random() > 0.5 ? "ON TIME" : "LATE");
-            }, p.speed - 50);
-        }, 100);
-    }
-</script>
+        const dirtCircle = new THREE.Mesh(new THREE.CircleGeometry(75, 32), new THREE.MeshStandardMaterial({ color: 0x733a11 }));
+        dirtCircle.rotation.x = -Math.PI / 2; dirtCircle.position.y = 0.01;
+        scene.add(dirtCircle);
+
+        const mound = new THREE.Mesh(new THREE.CylinderGeometry(9, 11, 0.7, 32), new THREE.MeshStandardMaterial({ color: 0x5c2e0d }));
+        mound.position.set(0, 0.35, -60.5);
+        scene.add(mound);
+
+        const plate = new THREE.Mesh(new THREE.PlaneGeometry(1.417, 1.417), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        plate.rotation.x = -Math.PI / 2; plate.position.y = 0.05;
+        scene.add(plate);
+
+        const zone = new THREE.LineSegments(
+            new THREE.EdgesGeometry(new THREE.PlaneGeometry(1.417, 2.0)),
+            new THREE.LineBasicMaterial({ color: 0x00ff00, transparent: true, opacity: 0.6 })
+        );
+        zone.position.set(0, 2.5, 0);
+        scene.add(zone);
+
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.12, 24, 24), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        scene.add(ball);
+
+        // Lights
+        const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+        sun.position.set(20, 40, 10);
+        scene.add(sun);
+        scene.add(new THREE.AmbientLight(0x505050));
+
+        // --- CAMERA CONFIG ---
+        camera.position.set(4.0, 6.2, 3.5); 
+        const pitcherPos = new THREE.Vector3(pitchData.x0, pitchData.z0, -pitchData.y0);
+        const plateTime = 0.382;
+
+        function getBallPosAt(t) {
+            return new THREE.Vector3(
+                pitchData.x0 + pitchData.vx0 * t + 0.5 * pitchData.ax * t * t,
+                pitchData.z0 + pitchData.vz0 * t + 0.5 * pitchData.az * t * t,
+                -(pitchData.y0 + pitchData.vy0 * t + 0.5 * pitchData.ay * t * t)
+            );
+        }
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            let elapsed = (time - startTime) / 1000;
+
+            if (state === "REHEARSAL") {
+                ball.position.copy(pitcherPos);
+                let cycle = 2.8; 
+                let progress = (elapsed % cycle) / cycle;
+                
+                // Pure Sine for the "Quick Pass" back and forth
+                let t = 0.5 * (1 - Math.cos(progress * Math.PI * 2));
+                let tVal = t * plateTime;
+                
+                camera.lookAt(getBallPosAt(tVal));
+                camera.fov = 34 + (t * 14); 
+                camera.updateProjectionMatrix();
+
+                if (elapsed >= 8.4) { // 3 cycles
+                    state = "SETTLE";
+                    startTime = time;
+                }
+            }
+            else if (state === "SETTLE") {
+                camera.lookAt(pitcherPos);
+                // --- SINUSOIDAL ZOOM IN ---
+                // Slowly pulls in tight (22 FOV) right before release
+                let focusProgress = Math.min(elapsed / 1.4, 1);
+                let zoomSine = 0.5 * (1 - Math.cos(focusProgress * Math.PI));
+                camera.fov = 34 - (zoomSine * 12); 
+                camera.updateProjectionMatrix();
+
+                if (elapsed > 1.4) { state = "LIVE"; startTime = time; }
+            }
+            else if (state === "LIVE") {
+                let t = (time - startTime) / 1000;
+                let currentPos = getBallPosAt(t);
+                ball.position.copy(currentPos);
+
+                let yDepth = pitchData.y0 + pitchData.vy0 * t + 0.5 * pitchData.ay * t * t;
+
+                if (yDepth > 0) {
+                    camera.lookAt(ball.position);
+                    camera.fov = 22 + (Math.min(1 - (yDepth/55), 1) * 20);
+                    camera.updateProjectionMatrix();
+                } else {
+                    state = "FREEZE";
+                    startTime = time;
+                    freezePoint.copy(ball.position);
+                }
+            }
+            else if (state === "FREEZE") {
+                let t = (time - (startTime - (plateTime * 1000))) / 1000;
+                ball.position.copy(getBallPosAt(t));
+                camera.lookAt(freezePoint); 
+
+                if (elapsed > 3.5) { 
+                    state = "REHEARSAL"; 
+                    startTime = time; 
+                }
+            }
+            renderer.render(scene, camera);
+        }
+        animate(performance.now());
+    </script>
 </body>
 </html>
