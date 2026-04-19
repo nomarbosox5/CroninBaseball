@@ -3,136 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cronin Baseball: Statcast Elite</title>
+    <title>Cronin Baseball: MLB Live Stream</title>
     <style>
-        :root { --gold: #f1c40f; --bg: #050505; }
-        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
-        
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .start-btn { padding: 20px 50px; border: 2px solid var(--gold); color: var(--gold); background: transparent; font-weight: 900; border-radius: 50px; cursor: pointer; }
-
-        #v-frame { width: 100%; height: 50vh; background: #000; position: relative; }
-        video { width: 100%; height: 100%; object-fit: contain; }
-
-        #deck { height: 50vh; background: var(--bg); padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #222; box-sizing: border-box; }
-        #swing-zone { width: 100%; height: 100%; background: rgba(255,255,255,0.05); border-radius: 10px; position: relative; touch-action: none; border: 1px dashed #444; display: flex; align-items: center; justify-content: center; }
-        #strike-zone { width: 110px; height: 150px; border: 2px solid rgba(255,255,255,0.4); position: relative; pointer-events: none; }
-
-        .asset { position: absolute; width: 26px; height: 26px; border-radius: 50%; transform: translate(-50%, -50%); }
-        .ball { background: #fff; box-shadow: 0 0 15px #fff; z-index: 10; border: 1px solid #999; }
-        .bat { background: #8b5a2b; border: 2px solid #000; z-index: 5; }
-        
-        #res-card { background: #111; border: 1px solid #333; border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 10px; min-height: 50px; }
+        :root { --gold: #f1c40f; --blue: #3498db; --bg: #050505; --grass: #1b3318; --board: #111; --wood: #8b5a2b; }
+        body { margin: 0; background: #000; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
+        #banner { height: 3.5vh; background: #000; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--gold); border-bottom: 1px solid #222; }
+        #v-frame { width: 100%; height: 63vh; overflow: hidden; position: relative; background: #000; }
+        video { height: 100%; width: auto; object-fit: contain; position: absolute; left: 50%; transform: translateX(-50%); pointer-events: none; }
+        #deck { height: 33.5vh; display: grid; grid-template-columns: 0.95fr 1.05fr; background: #050505; padding: 4px 8px; gap: 8px; padding-bottom: env(safe-area-inset-bottom); }
+        .panel { display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; position: relative; }
+        #scoreboard-strip { width: 100%; height: 5vh; background: var(--board); border: 1px solid #333; border-radius: 4px; display: flex; align-items: center; justify-content: space-around; padding: 0 5px; }
+        .stat-unit { display: flex; flex-direction: column; align-items: center; }
+        .stat-label { font-size: 7px; color: #666; font-weight: 800; }
+        .dots { display: flex; gap: 2px; margin-top: 2px; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: #222; border: 1px solid #333; }
+        .b-on { background: var(--blue); box-shadow: 0 0 5px var(--blue); } 
+        .s-on { background: var(--gold); box-shadow: 0 0 5px var(--gold); } 
+        .o-on { background: #e74c3c; box-shadow: 0 0 5px #e74c3c; }
+        #mini-diamond { width: 22px; height: 22px; position: relative; transform: rotate(45deg); }
+        .m-base { position: absolute; width: 5px; height: 5px; border: 1px solid #333; background: #111; }
+        #mb-1 { top: 0; right: 0; } #mb-2 { top: 0; left: 0; } #mb-3 { bottom: 0; left: 0; }
+        .m-on { background: var(--gold); border-color: #fff; }
+        #field-container { width: 100%; flex-grow: 1; background: #000; position: relative; overflow: hidden; margin-top: 4px; border-radius: 4px; border: 1px solid #222; }
+        .field-svg { width: 100%; height: 100%; }
+        #result-card { width: 100%; height: 6.5vh; background: var(--board); border: 1.5px solid #444; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; text-align: center; }
+        #res-main { color: var(--gold); font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+        #res-sub { color: #aaa; font-size: 8.5px; font-family: monospace; margin-top: 2px; font-weight: 600; }
+        #swing-zone { width: 100%; flex-grow: 1; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; background: rgba(255,255,255,0.02); border-radius: 4px; margin-top: 4px; }
+        #strike-zone { width: 80px; height: 120px; border: 2px solid #fff; background: rgba(255,255,255,0.03); position: relative; pointer-events: none; border-radius: 2px; }
+        .ball-asset { position: absolute; width: 22px; height: 22px; background: #fff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 5; box-shadow: 0 0 10px #fff; }
+        .bat-asset { position: absolute; width: 30px; height: 30px; background: var(--wood); border-radius: 50%; transform: translate(-50%, -50%); z-index: 4; border: 2px solid #000; }
+        .pitch-dot { position: absolute; width: 18px; height: 18px; background: rgba(255,255,255,0.2); border: 1px solid #fff; border-radius: 50%; transform: translate(-50%, -50%); z-index: 1; }
     </style>
 </head>
 <body>
 
-<div id="overlay">
-    <h1 style="color:var(--gold); letter-spacing:4px;">CRONIN BASEBALL</h1>
-    <button class="start-btn" onclick="init()">START GAUNTLET</button>
-</div>
-
+<div id="banner">LIVE: OHTANI vs TROUT</div>
 <div id="v-frame">
-    <video id="v" preload="auto" playsinline muted crossorigin="anonymous"></video>
+    <video id="v" autoplay muted playsinline></video>
 </div>
 
 <div id="deck">
-    <div style="display:flex; flex-direction:column;">
-        <div id="res-card">
-            <div id="res-main" style="color:var(--gold); font-weight:900;">READY</div>
+    <div class="panel">
+        <div id="scoreboard-strip">
+            <div class="stat-unit"><span class="stat-label">B</span><div class="dots" id="b-dots"></div></div>
+            <div class="stat-unit"><span class="stat-label">S</span><div class="dots" id="s-dots"></div></div>
+            <div class="stat-unit"><span class="stat-label">O</span><div class="dots" id="o-dots"></div></div>
+            <div id="mini-diamond"><div id="mb-2" class="m-base"></div><div id="mb-1" class="m-base"></div><div id="mb-3" class="m-base"></div></div>
+            <div class="stat-unit"><span class="stat-label">R</span><span style="font-size:11px; font-weight:900;" id="r-val">0</span></div>
         </div>
-        <div id="swing-zone"><div id="strike-zone"></div></div>
+        <div id="field-container">
+            <svg class="field-svg" id="field-svg" viewBox="0 0 100 100">
+                <path d="M50 98 L5 48 A 65 65 0 0 1 95 48 L50 98" fill="var(--grass)" />
+            </svg>
+        </div>
     </div>
-    
-    <div style="background:#0a0a0a; border-radius:8px; border:1px solid #222; display:flex; flex-direction:column; justify-content:center; text-align:center; padding:10px;">
-        <div style="font-size:10px; color:#444;">LEGEND</div>
-        <div id="p-name" style="font-size:24px; font-weight:900;">--</div>
-        <div id="p-info" style="font-size:12px; color:var(--gold); margin-top:10px;">--</div>
+    <div class="panel">
+        <div id="result-card"><div id="res-main">READY</div><div id="res-sub">STREAMING MLB DATA...</div></div>
+        <div id="swing-zone"><div id="strike-zone"></div></div>
     </div>
 </div>
 
 <script>
     const v = document.getElementById('v');
-    const resMain = document.getElementById('res-main');
     const sz = document.getElementById('strike-zone');
     const swz = document.getElementById('swing-zone');
+    const resMain = document.getElementById('res-main');
+    const resSub = document.getElementById('res-sub');
 
+    // These are official MLB Cut links paired with their real Statcast coordinates
     const playlist = [
-        { name: "JUDGE", src: "https://fastball-clips.mlb.com/718501/7be37882-78d1-456a-9a84-07d88476231d.mp4", x: -0.15, y: 0.65 },
-        { name: "TROUT", src: "https://fastball-clips.mlb.com/718501/a8f2392c-1234-4567-890b-cdef12345678.mp4", x: 0.05, y: 0.82 },
-        { name: "OHTANI", src: "https://fastball-clips.mlb.com/718450/shohei-ohtani-homers-2-on-a-fly-ball-to-center-field.mp4", x: -0.32, y: 0.25 }
+        { src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/530e9f0d-e2e60f06-81676f4e-csvm-diamondx64-asset_1280x720_59_4000K.mp4", t: 3.1, x: -0.22, y: 0.85, type: "FASTBALL", mph: 100 },
+        { src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/8e90656a-360495f4-3d9804ef-csvm-diamondx64-asset_1280x720_59_4000K.mp4", t: 3.2, x: 0.35, y: -0.40, type: "SLIDER", mph: 88 },
+        { src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/58957422-96942468-6c84381e-csvm-diamondx64-asset_1280x720_59_4000K.mp4", t: 3.0, x: -0.05, y: 0.95, type: "FASTBALL", mph: 101 }
     ];
 
-    let current = 0;
-    let swung = false;
+    let pIdx = 0;
+    let g = { b:0, s:0, o:0, r:0, processed: false };
 
-    function init() {
-        document.getElementById('overlay').style.display = 'none';
-        loadVideo();
-    }
-
-    function loadVideo() {
-        if (current >= playlist.length) {
-            resMain.innerText = "CHAMPION!";
-            return;
-        }
-        const item = playlist[current];
-        document.getElementById('p-name').innerText = item.name;
-        document.getElementById('p-info').innerText = `HR ${current + 1} / 45`;
-        
-        swung = false;
-        sz.innerHTML = "";
-        resMain.innerText = "WAIT FOR PITCH...";
-        
-        // Use a Proxy ONLY if the direct link fails
-        v.src = item.src;
+    function loadPitch() {
+        if(pIdx >= playlist.length) { pIdx = 0; } // Loop back to start
+        v.src = playlist[pIdx].src;
         v.load();
-        v.play().catch(() => {
-            console.log("Direct failed, trying proxy...");
-            v.src = "https://cors-anywhere.herokuapp.com/" + item.src;
-            v.play();
-        });
+        g.processed = false;
+        resMain.innerText = "EYES UP...";
+        resSub.innerText = `READY: ${playlist[pIdx].type}`;
     }
 
     swz.addEventListener('touchstart', (e) => {
-        if (swung) return;
+        e.preventDefault();
+        const p = playlist[pIdx];
         const now = v.currentTime;
+        if(g.processed || Math.abs(now - p.t) > 0.8) return;
         
-        // The "Statcast" timing window (most HR clips show contact at 2.8s)
-        if (now < 2.0 || now > 4.0) return;
-
-        swung = true;
+        g.processed = true;
         const rect = sz.getBoundingClientRect();
-        const touch = e.touches[0];
+        const tx = e.touches[0].clientX - rect.left;
+        const ty = e.touches[0].clientY - rect.top;
+        const px = ((p.x / 1.5) + 0.5) * sz.offsetWidth;
+        const py = (0.5 - (p.y / 2.0)) * sz.offsetHeight;
         
-        // Calculate user hit
-        const tx = touch.clientX - rect.left;
-        const ty = touch.clientY - rect.top;
+        const dist = Math.sqrt((tx - px)**2 + (ty - py)**2);
+        
+        // Visual indicators
+        const bat = document.createElement('div'); bat.className='bat-asset'; bat.style.left=tx+'px'; bat.style.top=ty+'px'; sz.appendChild(bat);
+        const ball = document.createElement('div'); ball.className='ball-asset'; ball.style.left=px+'px'; ball.style.top=py+'px'; sz.appendChild(ball);
 
-        // Calculate real ball location
-        const item = playlist[current];
-        const bx = ((item.x / 1.5) + 0.5) * sz.offsetWidth;
-        const by = (0.5 - (item.y / 2.0)) * sz.offsetHeight;
-
-        // Graphing
-        createAsset('ball', bx, by);
-        createAsset('bat', tx, ty);
-
-        const dist = Math.sqrt(Math.pow(tx - bx, 2) + Math.pow(ty - by, 2));
-        resMain.innerText = dist < 45 ? "CRUSHED!" : "MISS";
-
-        setTimeout(() => { current++; loadVideo(); }, 2500);
+        if(dist < 35) {
+            resMain.innerText = "SQUARED UP!";
+            resSub.innerText = `${p.mph} MPH ${p.type} CRUSHED!`;
+            setTimeout(nextPitch, 2500);
+        } else {
+            resMain.innerText = "STRIKE (WHIFF)";
+            g.s++; updateUI();
+            setTimeout(nextPitch, 2500);
+        }
     });
 
-    function createAsset(type, x, y) {
-        const d = document.createElement('div');
-        d.className = `asset ${type}`;
-        d.style.left = x + 'px';
-        d.style.top = y + 'px';
-        sz.appendChild(d);
+    function nextPitch() {
+        sz.innerHTML = ''; // Clear dots
+        pIdx++;
+        loadPitch();
     }
 
-    v.onended = () => { if(!swung) { current++; loadVideo(); } };
+    v.onended = () => {
+        if(!g.processed) { 
+            resMain.innerText = "STRIKE (TAKEN)";
+            g.s++; updateUI();
+            setTimeout(nextPitch, 2000); 
+        }
+    };
+
+    function updateUI() {
+        const render = (id, cur, max, cls) => {
+            let h = ''; for(let i=0; i<max; i++) h += `<div class="dot ${i<cur?cls:''}"></div>`;
+            document.getElementById(id).innerHTML = h;
+        };
+        render('b-dots', g.b, 3, 'b-on'); render('s-dots', g.s, 2, 's-on'); render('o-dots', g.o, 2, 'o-on');
+    }
+
+    loadPitch();
+    updateUI();
 </script>
 </body>
 </html>
