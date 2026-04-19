@@ -1,114 +1,86 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cronin Baseball: Legend Series</title>
-    <style>
-        :root { --gold: #f1c40f; --bg: #050505; }
-        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, system-ui, sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
-        #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .start-btn { padding: 20px 50px; border: 2px solid var(--gold); color: var(--gold); background: transparent; font-weight: 900; border-radius: 50px; cursor: pointer; }
-        #v-frame { width: 100%; height: 50vh; background: #000; position: relative; }
-        video { width: 100%; height: 100%; object-fit: contain; }
-        #deck { height: 50vh; background: var(--bg); padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid #222; box-sizing: border-box; }
-        #swing-zone { width: 100%; height: 100%; background: rgba(255,255,255,0.05); border-radius: 10px; position: relative; touch-action: none; border: 1px dashed #444; }
-        #strike-zone { width: 110px; height: 150px; border: 2px solid rgba(255,255,255,0.4); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-        .asset { position: absolute; width: 28px; height: 28px; border-radius: 50%; transform: translate(-50%, -50%); }
-        .ball { background: #fff; box-shadow: 0 0 15px #fff; z-index: 10; }
-        .bat { background: #8b5a2b; border: 2px solid #000; z-index: 5; }
-    </style>
-</head>
-<body>
-
-<div id="overlay">
-    <h1 style="color:var(--gold); letter-spacing:4px;">CRONIN BASEBALL</h1>
-    <button class="start-btn" onclick="init()">UNLEASH THE LEGENDS</button>
-</div>
-
-<div id="v-frame">
-    <video id="v" preload="auto" playsinline muted></video>
-</div>
-
-<div id="deck">
-    <div style="display:flex; flex-direction:column;">
-        <div style="background:#111; padding:10px; text-align:center; border-radius:8px; margin-bottom:10px;">
-            <div id="res-main" style="color:var(--gold); font-weight:900;">READY</div>
-        </div>
-        <div id="swing-zone"><div id="strike-zone"></div></div>
-    </div>
-    
-    <div style="background:#0a0a0a; border-radius:8px; border:1px solid #222; text-align:center; padding:15px; display:flex; flex-direction:column; justify-content:center;">
-        <div style="font-size:10px; color:#444;">BATTER</div>
-        <div id="p-name" style="font-size:24px; font-weight:900;">--</div>
-        <p id="p-info" style="font-size:12px; color:var(--gold); margin-top:10px;">PRE-LOADED CLOUD FEED</p>
-    </div>
-</div>
-
 <script>
     const v = document.getElementById('v');
-    const resMain = document.getElementById('res-main');
     const sz = document.getElementById('strike-zone');
+    const swz = document.getElementById('swing-zone');
+    const resMain = document.getElementById('res-main');
+    const resSub = document.getElementById('res-sub');
 
-    // CHANGE 'nomarbosox5' TO YOUR ACTUAL GITHUB USERNAME
-    const cloudBase = "https://raw.githubusercontent.com/nomarbosox5/CroninBaseball/main/videos/";
-
+    // MLB Links wrapped in a CORS Proxy to ensure they play in your browser
+    const proxy = "https://corsproxy.io/?"; 
     const playlist = [
-        { name: "JUDGE", file: "judge.mp4", x: -0.15, y: 0.65 },
-        { name: "OHTANI", file: "ohtani.mp4", x: 0.25, y: 0.45 },
-        { name: "TROUT", file: "trout.mp4", x: 0.05, y: 0.82 }
+        { 
+            src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/530e9f0d-e2e60f06-81676f4e-csvm-diamondx64-asset_1280x720_59_4000K.mp4", 
+            t: 3.1, x: -0.22, y: 0.85, type: "FASTBALL", mph: 100 
+        },
+        { 
+            src: "https://mlb-cuts-diamond.mlb.com/FORGE/2023/2023-03/21/8e90656a-360495f4-3d9804ef-csvm-diamondx64-asset_1280x720_59_4000K.mp4", 
+            t: 3.2, x: 0.35, y: -0.40, type: "SLIDER", mph: 88 
+        }
     ];
 
-    let current = 0;
-    let swung = false;
+    let pIdx = 0;
+    let g = { b:0, s:0, o:0, r:0, processed: false };
 
-    function init() {
-        document.getElementById('overlay').style.display = 'none';
-        playNext();
-    }
-
-    function playNext() {
-        if (current >= playlist.length) {
-            resMain.innerText = "CHAMPION!";
-            return;
-        }
-        const item = playlist[current];
-        document.getElementById('p-name').innerText = item.name;
+    function loadPitch() {
+        if(pIdx >= playlist.length) { pIdx = 0; }
         
-        swung = false;
-        sz.innerHTML = "";
-        v.src = cloudBase + item.file;
+        // This is the magic line: it adds the proxy to the MLB URL
+        v.src = proxy + encodeURIComponent(playlist[pIdx].src);
+        
         v.load();
-        v.play();
+        v.play().catch(e => {
+            resMain.innerText = "TAP TO START";
+            resSub.innerText = "Browser blocked autoplay. Tap the screen!";
+        });
+        
+        g.processed = false;
+        resMain.innerText = "EYES UP...";
+        resSub.innerText = `READY: ${playlist[pIdx].type}`;
     }
 
-    document.getElementById('swing-zone').addEventListener('touchstart', (e) => {
-        if (swung) return;
-        swung = true;
-
+    // Rest of your swing logic remains the same...
+    swz.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const p = playlist[pIdx];
+        const now = v.currentTime;
+        if(g.processed || Math.abs(now - p.t) > 0.8) return;
+        
+        g.processed = true;
         const rect = sz.getBoundingClientRect();
         const tx = e.touches[0].clientX - rect.left;
         const ty = e.touches[0].clientY - rect.top;
+        const px = ((p.x / 1.5) + 0.5) * sz.offsetWidth;
+        const py = (0.5 - (p.y / 2.0)) * sz.offsetHeight;
+        
+        const dist = Math.sqrt((tx - px)**2 + (ty - py)**2);
+        
+        const bat = document.createElement('div'); bat.className='bat-asset'; bat.style.left=tx+'px'; bat.style.top=ty+'px'; sz.appendChild(bat);
+        const ball = document.createElement('div'); ball.className='ball-asset'; ball.style.left=px+'px'; ball.style.top=py+'px'; sz.appendChild(ball);
 
-        const item = playlist[current];
-        const bx = ((item.x / 1.5) + 0.5) * sz.offsetWidth;
-        const by = (0.5 - (item.y / 2.0)) * sz.offsetHeight;
-
-        const ball = document.createElement('div');
-        ball.className = "asset ball";
-        ball.style.left = bx + 'px'; ball.style.top = by + 'px';
-        sz.appendChild(ball);
-
-        const bat = document.createElement('div');
-        bat.className = "asset bat";
-        bat.style.left = tx + 'px'; bat.style.top = ty + 'px';
-        sz.appendChild(bat);
-
-        const dist = Math.sqrt((tx-bx)**2 + (ty-by)**2);
-        resMain.innerText = dist < 45 ? "CRUSHED!" : "MISS";
-
-        setTimeout(() => { current++; playNext(); }, 2000);
+        if(dist < 35) {
+            resMain.innerText = "SQUARED UP!";
+            setTimeout(nextPitch, 2500);
+        } else {
+            resMain.innerText = "STRIKE (WHIFF)";
+            g.s++; updateUI();
+            setTimeout(nextPitch, 2500);
+        }
     });
+
+    function nextPitch() {
+        sz.innerHTML = '';
+        pIdx++;
+        loadPitch();
+    }
+
+    function updateUI() {
+        const render = (id, cur, max, cls) => {
+            let h = ''; for(let i=0; i<max; i++) h += `<div class="dot ${i<cur?cls:''}"></div>`;
+            document.getElementById(id).innerHTML = h;
+        };
+        render('b-dots', g.b, 3, 'b-on'); render('s-dots', g.s, 2, 's-on'); render('o-dots', g.o, 2, 'o-on');
+    }
+
+    loadPitch();
+    updateUI();
 </script>
-</body>
-</html>
