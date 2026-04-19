@@ -2,174 +2,82 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cronin Statcast 3D: TOR @ ARI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cronin Baseball: WIN Engine</title>
     <style>
-        :root { --gold: #f1c40f; --blue: #3498db; --bg: #050505; --grass: #1b3318; --red: #e74c3c; }
-        body { margin: 0; background: #000; color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
+        :root { --gold: #f1c40f; --bg: #050505; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: sans-serif; overflow: hidden; height: 100vh; }
         
-        /* 3D THEATER */
-        #theater { 
-            width: 100%; height: 60vh; position: relative; perspective: 1200px;
-            background: radial-gradient(circle at 50% 100%, #1e3a1a 0%, #000 85%);
-            border-bottom: 2px solid #333; overflow: hidden;
-        }
-
-        /* 3D BALL & MITT */
-        #ball-3d { 
-            position: absolute; width: 14px; height: 14px; background: #fff; 
-            border-radius: 50%; box-shadow: 0 0 15px #fff; opacity: 0; z-index: 100;
-        }
-        #mitt {
-            position: absolute; width: 40px; height: 40px; 
-            background: url('https://img.icons8.com/ios-filled/50/ffffff/baseball-glove.png') no-repeat center;
-            background-size: contain; opacity: 0.4; z-index: 90; transform: translate(-50%, -50%);
-            transition: all 0.1s ease-out;
-        }
-
-        /* ALERT & UI */
-        #alert { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); color: var(--red); font-weight: 900; opacity: 0; z-index: 200; font-size: 20px; }
-        .flash { animation: flash-anim 0.4s infinite; opacity: 1 !important; }
-        @keyframes flash-anim { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        #deck { height: 40vh; display: grid; grid-template-columns: 1fr 1fr; background: #000; padding: 10px; gap: 10px; }
-        .panel { background: #111; border: 1px solid #333; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        /* The Field View */
+        #field { height: 60vh; width: 100%; position: relative; background: #000; overflow: hidden; perspective: 1000px; border-bottom: 2px solid #222; }
         
-        #strike-zone { width: 85px; height: 120px; border: 2.5px solid rgba(255,255,255,0.2); position: relative; }
-        .p-dot { position: absolute; width: 14px; height: 14px; border: 1px solid #fff; border-radius: 50%; background: var(--gold); transform: translate(-50%, -50%); font-size: 8px; font-weight: 900; color: #000; display: flex; align-items: center; justify-content: center; }
+        /* The Pitcher (Placeholder for your video) */
+        #pitcher { position: absolute; bottom: 40%; left: 50%; transform: translateX(-50%); width: 60px; height: 120px; background: rgba(255,255,255,0.1); border-radius: 10px; }
 
-        #comm-box { position: absolute; bottom: 10px; left: 10px; font-size: 10px; color: #666; font-family: monospace; }
+        /* THE BALL ENGINE */
+        #ball { 
+            position: absolute; width: 10px; height: 10px; background: #fff; border-radius: 50%;
+            box-shadow: 0 0 10px #fff; display: none; z-index: 100;
+            transition: transform 0.4s linear, width 0.4s linear, height 0.4s linear, opacity 0.1s;
+        }
+
+        #ui { height: 40vh; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .zone { width: 120px; height: 160px; border: 2px solid var(--gold); position: relative; }
+        .btn { padding: 15px 40px; border: 2px solid var(--gold); color: var(--gold); background: transparent; border-radius: 50px; font-weight: 900; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-<div id="theater">
-    <div id="alert">⚠️ PITCH INCOMING ⚠️</div>
-    <div id="mitt"></div>
-    <div id="ball-3d"></div>
-    <div id="comm-box">CONNECTING TO MLB STATCAST...</div>
-    <div style="position:absolute; top:15%; left:45%; opacity:0.3; font-size:10px;">PITCHER MOUND (60'6")</div>
+<div id="field">
+    <div id="pitcher"></div>
+    <div id="ball"></div>
 </div>
 
-<div id="deck">
-    <div class="panel">
-        <div id="mph-tag" style="font-size: 40px; font-weight: 900; color: var(--gold);">--</div>
-        <div id="type-tag" style="text-transform: uppercase; font-weight: 800; font-size: 12px; letter-spacing: 1px;">WAITING</div>
-    </div>
-    <div class="panel">
-        <div id="strike-zone"></div>
-    </div>
+<div id="ui">
+    <div id="status" style="margin-bottom: 10px; font-weight: 900; color: var(--gold);">READY</div>
+    <div class="zone" id="swing-area"></div>
+    <button class="btn" onclick="throwPitch()">NEXT PITCH</button>
 </div>
 
 <script>
-    const ball = document.getElementById('ball-3d');
-    const mitt = document.getElementById('mitt');
-    const sz = document.getElementById('strike-zone');
-    const alertBox = document.getElementById('alert');
-    const mphTag = document.getElementById('mph-tag');
-    const typeTag = document.getElementById('type-tag');
-    const commBox = document.getElementById('comm-box');
+    const ball = document.getElementById('ball');
+    const status = document.getElementById('status');
+    
+    // WIN Reality Data Points (Normalized)
+    const pitches = [
+        { type: "Fastball", speed: 400, endX: 50, endY: 60 }, // Middle-In
+        { type: "Slider", speed: 650, endX: 30, endY: 80 },   // Low-Away
+        { type: "Cutter", speed: 450, endX: 70, endY: 30 }    // High-In
+    ];
 
-    let historyProcessed = false;
-    let lastPitchId = null;
-
-    async function syncGameData() {
-        try {
-            const res = await fetch('https://statsapi.mlb.com/api/v1.1/game/825098/feed/live');
-            const data = await res.json();
-            const allPlays = data.liveData.plays.allPlays;
-            
-            // 1. Process History (Last 5) on Load
-            if (!historyProcessed) {
-                const recentPitches = [];
-                allPlays.slice(-3).forEach(play => {
-                    play.playEvents.forEach(event => {
-                        if(event.isPitch && event.pitchData.coordinates) recentPitches.push(event);
-                    });
-                });
-                
-                // Show last 5
-                recentPitches.slice(-5).forEach((p, i) => {
-                    setTimeout(() => runPitchSequence(p, true), i * 3500);
-                });
-                historyProcessed = true;
-                commBox.innerText = "HISTORY LOADED. LISTENING FOR LIVE DATA...";
-            }
-
-            // 2. Check for New Live Pitch
-            const lastPlay = allPlays[allPlays.length - 1];
-            const lastEvent = lastPlay.playEvents[lastPlay.playEvents.length - 1];
-            
-            if (lastEvent.isPitch && lastEvent.index !== lastPitchId) {
-                lastPitchId = lastEvent.index;
-                runPitchSequence(lastEvent, false);
-            }
-        } catch (e) { console.log("Feed delay..."); }
-    }
-
-    function runPitchSequence(event, isHistory) {
-        const p = {
-            x: event.pitchData.coordinates.pX,
-            z: event.pitchData.coordinates.pZ,
-            mph: event.pitchData.startSpeed,
-            type: event.details.type.description,
-            breakX: event.pitchData.coordinates.p0X || 0
-        };
-
-        if (!isHistory) {
-            alertBox.classList.add('flash');
-            commBox.innerText = `NEW PITCH DETECTED: ${p.type}`;
-            setTimeout(() => {
-                alertBox.classList.remove('flash');
-                illustrate3D(p);
-            }, 3000);
-        } else {
-            illustrate3D(p);
-        }
-    }
-
-    function illustrate3D(p) {
-        // Visual Constants for 6ft Righty View
-        const startX = window.innerWidth * 0.45; // Slightly left of center
-        const startY = window.innerHeight * 0.15;
+    function throwPitch() {
+        const p = pitches[Math.floor(Math.random() * pitches.length)];
+        status.innerText = "RECOGNIZING...";
         
-        // Target calculation
-        const endX = (window.innerWidth / 2) + (p.x * 70); 
-        const endY = (window.innerHeight * 0.5); 
+        // 1. Reset Ball to Pitcher's Hand
+        ball.style.display = "block";
+        ball.style.transition = "none";
+        ball.style.width = "4px";
+        ball.style.height = "4px";
+        ball.style.left = "50%";
+        ball.style.top = "55%";
+        ball.style.opacity = "1";
 
-        // 1. Reset & Move Mitt to target
-        mitt.style.left = endX + 'px';
-        mitt.style.top = endY + 'px';
-        mitt.style.opacity = '0.8';
-
-        // 2. Animate Ball
-        ball.style.opacity = '1';
-        const duration = (105 / p.mph) * 450;
-
-        ball.animate([
-            { left: startX + 'px', top: startY + 'px', transform: 'translateZ(-800px) scale(0.1)', opacity: 0 },
-            { opacity: 1, offset: 0.1 },
-            { left: endX + 'px', top: endY + 'px', transform: 'translateZ(0px) scale(3.5)', opacity: 1 }
-        ], { duration: duration, easing: 'ease-out' }).onfinish = () => {
-            ball.style.opacity = '0';
-            mphTag.innerText = Math.round(p.mph);
-            typeTag.innerText = p.type;
+        // 2. Trigger "The WIN Logic" (Flight Path)
+        setTimeout(() => {
+            ball.style.transition = `all ${p.speed}ms cubic-bezier(0.25, 0.1, 0.25, 1)`;
+            ball.style.width = "40px"; // Gets bigger as it nears home
+            ball.style.height = "40px";
+            ball.style.left = p.endX + "%";
+            ball.style.top = "100%"; // Hits the "plate"
             
-            // Strike Zone Dot
-            const dot = document.createElement('div');
-            dot.className = 'p-dot';
-            dot.style.left = ((p.x / 1.5) + 0.5) * sz.offsetWidth + 'px';
-            dot.style.top = (1 - ((p.z - 1.4) / 1.8)) * sz.offsetHeight + 'px';
-            dot.innerText = p.mph.toString().split('.')[0];
-            sz.appendChild(dot);
-            
-            setTimeout(() => mitt.style.opacity = '0.2', 1000);
-        };
+            // 3. Detect Timing
+            setTimeout(() => {
+                ball.style.opacity = "0";
+                status.innerText = p.type + " - " + (Math.random() > 0.5 ? "ON TIME" : "LATE");
+            }, p.speed - 50);
+        }, 100);
     }
-
-    // Start Engine
-    syncGameData();
-    setInterval(syncGameData, 10000);
 </script>
 </body>
 </html>
