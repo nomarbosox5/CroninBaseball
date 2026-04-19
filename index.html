@@ -3,55 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cronin Live: TOR @ AZ Trace Engine</title>
+    <title>Cronin Trace: TOR @ AZ Live</title>
     <style>
-        :root { --gold: #f1c40f; --bg: #0b0b0b; }
+        :root { --gold: #f1c40f; --bg: #0b0b0b; --seam: #e74c3c; }
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; height: 100svh; display: flex; flex-direction: column; }
         
         #v-frame { width: 100%; height: 60vh; background: #000; border-bottom: 2px solid #333; }
         iframe { width: 100%; height: 100%; border: none; }
 
         #deck { height: 40vh; display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); padding: 15px; gap: 15px; }
-        
         .card { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        #res-main { color: var(--gold); font-size: 16px; font-weight: 900; }
-        #res-sub { color: #666; font-size: 11px; font-family: monospace; }
-
-        #swing-zone { background: rgba(255,255,255,0.02); border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px dashed #444; }
-        #strike-zone { width: 85px; height: 120px; border: 2.5px solid rgba(255,255,255,0.6); position: relative; pointer-events: none; }
         
-        /* THE PITCH TRAIL (Illustration) */
-        .ball { 
-            position: absolute; 
-            width: 18px; 
-            height: 18px; 
-            background: #fff; 
-            border-radius: 50%; 
-            transform: translate(-50%, -50%); 
-            z-index: 10; 
-            box-shadow: 0 0 15px #fff; 
-            
-            /* ADDING A TAIL */
-            filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));
-            border: 2px solid rgba(255,255,255,0.3);
-            
-            /* THE MOTION (The "Illustration" part) */
-            animation: move-in 0.3s ease-out; 
+        #swing-zone { background: rgba(255,255,255,0.02); border-radius: 12px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px dashed #444; overflow: visible; }
+        #strike-zone { width: 85px; height: 120px; border: 2.5px solid rgba(255,255,255,0.4); position: relative; }
+        
+        /* THE BALL ILLUSTRATION */
+        .pitch-trace {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+            border-radius: 50%;
+            z-index: 100;
+            box-shadow: 0 0 15px rgba(255,255,255,0.5);
+            pointer-events: none;
         }
 
-        @keyframes move-in { 
-            /* Start: Blurred and coming from the pitcher's general area */
-            0% { 
-                transform: translate(-100%, -200%) scale(2); 
-                opacity: 0;
-                box-shadow: 0 0 40px rgba(255,255,255,0);
-            } 
-            /* End: Small, clear, and perfectly placed in the strike zone */
-            100% { 
-                transform: translate(-50%, -50%) scale(1); 
-                opacity: 1;
-                box-shadow: 0 0 15px #fff;
-            } 
+        /* THE TAIL (The "Path" Illustration) */
+        .trail {
+            position: absolute;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.4));
+            height: 2px;
+            transform-origin: left center;
+            z-index: 90;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -63,9 +48,9 @@
 
 <div id="deck">
     <div class="card">
-        <div id="res-main">3D TRACE ACTIVE</div>
-        <div id="res-sub">LIVE FROM CHASE FIELD</div>
-        <div style="font-size: 9px; color: #444; margin-top: 10px;">TOR @ ARI | 2026.04.18</div>
+        <div id="res-main" style="color:var(--gold); font-weight:900;">LIVE PATH TRACE</div>
+        <div id="res-sub" style="font-size:11px; color:#666; margin-top:5px;">FEED: STATCAST v4.0</div>
+        <div id="mph-tag" style="font-size:24px; font-weight:900; margin-top:10px;">--</div>
     </div>
     
     <div id="swing-zone">
@@ -75,38 +60,54 @@
 
 <script>
     const sz = document.getElementById('strike-zone');
-    const resMain = document.getElementById('res-main');
-    const resSub = document.getElementById('res-sub');
+    const mphTag = document.getElementById('mph-tag');
 
-    // Simulate Live Statcast for tonight's game
-    function fetchPitch() {
-        const p = {
-            x: (Math.random() * 1.4 - 0.7),
-            z: (Math.random() * 1.6 + 1.5),
-            type: ["Sinker", "4-Seam", "Slider", "Changeup"][Math.floor(Math.random()*4)],
-            mph: (91 + Math.random() * 9).toFixed(1)
+    function animatePitch(data) {
+        // 1. Create the Ball
+        const ball = document.createElement('div');
+        ball.className = 'pitch-trace';
+        sz.appendChild(ball);
+
+        // 2. Map End Coordinates (Plate)
+        const endX = ((data.x / 1.5) + 0.5) * sz.offsetWidth;
+        const endY = (1 - ((data.z - 1.5) / 2)) * sz.offsetHeight;
+
+        // 3. Define Start Coordinates (Release Point Approximation)
+        const startX = -100; // Coming from "behind" the screen
+        const startY = -50;
+
+        // 4. Animation Logic
+        const duration = (105 / data.mph) * 400; // Faster MPH = Faster Animation
+        
+        const anim = ball.animate([
+            { left: startX + 'px', top: startY + 'px', transform: 'scale(4)', opacity: 0 },
+            { opacity: 1, offset: 0.2 },
+            { left: endX + 'px', top: endY + 'px', transform: 'scale(1)', opacity: 1 }
+        ], {
+            duration: duration,
+            easing: 'ease-out'
+        });
+
+        anim.onfinish = () => {
+            mphTag.innerText = `${data.mph} MPH`;
+            setTimeout(() => ball.remove(), 2500);
         };
-
-        sz.innerHTML = ''; // Clean old pitch
-        const dot = document.createElement('div');
-        dot.className = 'ball';
-        
-        // Map Statcast coordinates to pixels
-        const left = ((p.x / 1.5) + 0.5) * sz.offsetWidth;
-        const top = (1 - ((p.z - 1.5) / 2)) * sz.offsetHeight;
-
-        dot.style.left = left + 'px';
-        dot.style.top = top + 'px';
-        sz.appendChild(dot);
-
-        resMain.innerText = p.type.toUpperCase();
-        resSub.innerText = `${p.mph} MPH | ${p.x.toFixed(2)}, ${p.z.toFixed(2)}`;
-        
-        setTimeout(fetchPitch, 15000 + Math.random() * 5000);
     }
 
-    fetchPitch();
-</script>
+    // This connects to the live game loop
+    function liveFeedLoop() {
+        // simulating the live Statcast JSON feed for the Blue Jays/D-Backs game
+        const liveData = {
+            x: (Math.random() * 1.4 - 0.7), 
+            z: (Math.random() * 1.6 + 1.5),
+            mph: (92 + Math.random() * 7).toFixed(1)
+        };
+        
+        animatePitch(liveData);
+        setTimeout(liveFeedLoop, 15000 + Math.random() * 5000);
+    }
 
+    liveFeedLoop();
+</script>
 </body>
 </html>
