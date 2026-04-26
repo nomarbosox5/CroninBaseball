@@ -1,917 +1,432 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Cronin Baseball Pro</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Batter's Eye</title>
 <style>
-:root{--gold:#f1c40f;--blue:#3498db;--bg:#050505;--grass:#1b3318;--board:#111;--wood:#8b5a2b;}
-#v-frame{width:100%;height:63vh;overflow:hidden;position:relative;background:#000;}
-#v-frame canvas{position:absolute!important;left:-48%!important;bottom:0!important;top:auto!important;width:156.4%!important;height:auto!important;}
-body{margin:0;background:#000;color:#fff;font-family:'Inter',sans-serif;overflow:hidden;height:100svh;display:flex;flex-direction:column;}
-
-#banner{height:3.5vh;background:#000;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--gold);border-bottom:1px solid #222;}
-
-
-
-
-#deck{height:33.5vh;display:grid;grid-template-columns:0.95fr 1.05fr;background:#050505;padding:4px 8px;gap:8px;padding-bottom:env(safe-area-inset-bottom);}
-.panel{display:flex;flex-direction:column;align-items:center;justify-content:space-between;height:100%;position:relative;}
-
-#scoreboard-strip{width:100%;height:5vh;background:var(--board);border:1px solid #333;border-radius:4px;display:flex;align-items:center;justify-content:space-around;padding:0 5px;}
-.stat-unit{display:flex;flex-direction:column;align-items:center;}
-.stat-label{font-size:7px;color:#666;font-weight:800;}
-.dots{display:flex;gap:2px;margin-top:2px;}
-.dot{width:6px;height:6px;border-radius:50%;background:#222;border:1px solid #333;}
-.b-on{background:var(--blue);box-shadow:0 0 5px var(--blue);}
-.s-on{background:var(--gold);box-shadow:0 0 5px var(--gold);}
-.o-on{background:#e74c3c;box-shadow:0 0 5px #e74c3c;}
-
-#mini-diamond{width:22px;height:22px;position:relative;transform:rotate(45deg);}
-.m-base{position:absolute;width:5px;height:5px;border:1px solid #333;background:#111;}
-#mb-1{top:0;right:0;}#mb-2{top:0;left:0;}#mb-3{bottom:0;left:0;}
-.m-on{background:var(--gold);border-color:#fff;}
-
-#field-container{width:100%;flex-grow:1;background:#000;position:relative;overflow:hidden;margin-top:4px;border-radius:4px;border:1px solid #222;}
-.field-svg{width:100%;height:100%;}
-.hit-dot{position:absolute;width:16px;height:16px;background:rgba(0,0,0,0.9);border:1px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:900;transform:translate(-50%,-50%);}
-
-#result-card{width:100%;height:6.5vh;background:var(--board);border:1.5px solid #444;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;text-align:center;}
-#res-main{color:var(--gold);font-size:13px;font-weight:900;text-transform:uppercase;letter-spacing:1px;}
-#res-sub{color:#aaa;font-size:8.5px;font-family:'Courier New',Courier,monospace;margin-top:2px;font-weight:600;}
-
-#swing-zone{width:100%;flex-grow:1;display:flex;align-items:center;justify-content:center;position:relative;touch-action:none;background:rgba(255,255,255,0.02);border-radius:4px;margin-top:4px;}
-#strike-zone{width:56px;height:84px;border:2px solid #fff;background:rgba(255,255,255,0.03);position:relative;pointer-events:none;border-radius:2px;}
-.ball-asset{position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;transform:translate(-50%,-50%);z-index:5;box-shadow:0 0 10px #fff;}
-.bat-asset{position:absolute;width:30px;height:30px;background:var(--wood);border-radius:50%;transform:translate(-50%,-50%);z-index:4;border:2px solid #000;}
-.pitch-dot{position:absolute;width:22px;height:22px;background:rgba(255,255,255,0.3);border:1.5px solid #fff;border-radius:50%;transform:translate(-50%,-50%);z-index:1;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;overflow:hidden;width:100vw;height:100vh;touch-action:none;}
+canvas{display:block;}
 </style>
 </head>
 <body>
-
-<div id="banner">Cronin Baseball</div>
-
-<!-- Three.js animation replaces video here -->
-<div id="v-frame"></div>
-
-<div id="deck">
-  <div class="panel">
-    <div id="scoreboard-strip">
-      <div class="stat-unit"><span class="stat-label">B</span><div class="dots" id="b-dots"></div></div>
-      <div class="stat-unit"><span class="stat-label">S</span><div class="dots" id="s-dots"></div></div>
-      <div class="stat-unit"><span class="stat-label">O</span><div class="dots" id="o-dots"></div></div>
-      <div id="mini-diamond">
-        <div id="mb-2" class="m-base"></div><div id="mb-1" class="m-base"></div><div id="mb-3" class="m-base"></div>
-      </div>
-      <div class="stat-unit"><span class="stat-label">R</span><span style="font-size:11px;font-weight:900;" id="r-val">0</span></div>
-    </div>
-    <div id="field-container">
-      <svg class="field-svg" id="field-svg" viewBox="0 0 100 100">
-        <path d="M50 98 L5 48 A 65 65 0 0 1 95 48 L50 98" fill="var(--grass)"/>
-        <line x1="50" y1="98" x2="5" y2="48" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
-        <line x1="50" y1="98" x2="95" y2="48" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
-      </svg>
-    </div>
-  </div>
-
-  <div class="panel">
-    <div id="result-card">
-      <div id="res-main">READY</div>
-      <div id="res-sub">WAITING FOR PITCH</div>
-    </div>
-    <div id="swing-zone">
-      <div id="strike-zone"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════
-  BATTER'S EYE Three.js animation — inlined directly.
-  Renders into #v-frame. Broadcasts pitch data via postMessage.
-  Bottom UI listens and drives game state from real Statcast data.
-═══════════════════════════════════════════════════════════════ -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 'use strict';
 
-// ── PITCH DATA (265 real Statcast pitches, feet→meters) ───────────────────
+// COORDINATE SYSTEM: meters, nkreeger
+// Origin = tip of home plate
+// sc2v: Statcast(x,y,z) -> Three.js(-x, z, -y)
+const FENWAY={“outfield_outer”:[[67.701,63.745],[69.593,67.818],[71.487,71.89],[73.381,75.962],[75.18,80.072],[76.482,84.346],[75.583,88.709],[72.867,92.226],[68.892,94.288],[64.866,96.277],[60.839,98.266],[56.818,100.265],[52.795,102.262],[48.777,104.267],[44.756,106.268],[40.73,108.258],[36.71,110.26],[32.685,112.253],[29.169,114.688],[27.807,118.967],[26.34,123.204],[23.474,125.162],[19.14,123.985],[14.809,122.797],[10.474,121.625],[6.137,120.459],[1.799,119.297],[-2.533,118.113],[-6.871,116.949],[-11.201,115.757],[-15.311,115.566],[-18.791,115.618],[-21.983,112.459],[-25.129,109.255],[-28.312,106.086],[-31.475,102.898],[-34.632,99.704],[-37.783,96.505],[-40.999,93.371],[-44.189,90.21],[-47.348,87.018],[-50.52,83.839],[-53.706,80.674],[-56.879,77.496],[-60.058,74.323],[-63.242,71.156],[-66.405,67.969],[-68.596,64.787],[-65.437,61.594],[-62.279,58.402],[-59.12,55.209],[-55.962,52.016],[-52.803,48.823],[-49.644,45.631],[-46.486,42.438],[-44.247,38.789],[-43.616,34.343],[-42.984,29.896],[-42.353,25.45],[-41.721,21.003],[-40.89,16.638],[-38.258,12.999],[-35.625,9.36],[-32.993,5.721],[-30.361,2.083],[-27.728,-1.556],[-25.096,-5.195],[-22.464,-8.834],[-19.831,-12.472],[-17.199,-16.111],[-14.147,-19.214],[-9.985,-20.902],[-5.816,-22.552],[-1.326,-22.469],[3.164,-22.385],[7.647,-22.26],[11.857,-20.697],[16.067,-19.134],[19.591,-16.665],[22.236,-13.035],[24.881,-9.405],[27.526,-5.776],[30.17,-2.146],[32.366,1.744],[34.191,5.847],[36.017,9.95],[37.843,14.053],[39.669,18.156],[41.495,22.259],[43.321,26.362],[45.147,30.465],[46.973,34.568],[48.799,38.672],[49.663,40.29],[51.122,42.125],[53.528,45.176],[56.635,49.152],[60.197,53.765],[63.968,58.726],[67.701,63.745]],“infield_outer”:[[29.225,24.342],[31.366,26.482],[31.714,28.623],[29.742,26.779],[29.376,27.97],[28.802,29.524],[27.988,31.36],[26.898,33.397],[25.499,35.554],[23.756,37.749],[21.637,39.903],[19.106,41.934],[16.13,43.76],[12.674,45.302],[8.706,46.477],[4.19,47.206],[-0.872,47.406],[-5.677,47.056],[-9.914,46.231],[-13.621,45.0],[-16.835,43.435],[-19.595,41.606],[-21.937,39.584],[-23.901,37.44],[-25.524,35.244],[-26.842,33.067],[-27.895,30.979],[-28.72,29.052],[-29.355,27.356],[-29.847,25.983],[-31.988,27.893],[-31.427,25.752],[-29.283,23.615],[-28.123,20.835],[-26.695,18.165],[-24.25,15.179],[-21.791,13.521],[-19.489,13.321],[-17.269,11.816],[-15.118,9.686],[-12.966,7.556],[-10.815,5.427],[-8.664,3.297],[-6.512,1.167],[-4.51,-0.985],[-5.143,-3.906],[-4.15,-6.725],[-1.826,-8.605],[1.139,-8.987],[3.863,-7.758],[5.539,-5.283],[5.667,-2.296],[5.775,0.245],[7.876,2.424],[9.978,4.603],[12.079,6.782],[14.181,8.961],[16.282,11.14],[18.384,13.319],[21.27,13.546],[23.785,14.546],[26.07,16.723],[27.834,19.441],[28.775,22.206],[29.225,24.342]],“foul_lines”:[[0.137,-4.207],[-2.657,-1.412],[-5.451,1.383],[-8.244,4.178],[-11.038,6.973],[-13.832,9.768],[-16.626,12.563],[-19.419,15.358],[-22.213,18.153],[-25.007,20.948],[-27.8,23.743],[-30.594,26.538],[-33.388,29.333],[-36.182,32.128],[-38.975,34.923],[-41.769,37.718],[-44.563,40.513],[-47.357,43.308],[-50.15,46.103],[-52.944,48.898],[-55.738,51.693],[-58.531,54.488],[-61.325,57.283],[-64.119,60.077],[-66.913,62.872],[-68.698,65.658],[-65.898,63.47],[-63.104,60.675],[-60.311,57.88],[-57.517,55.086],[-54.723,52.291],[-51.929,49.496],[-49.136,46.701],[-46.342,43.906],[-43.548,41.111],[-40.755,38.316],[-37.961,35.521],[-35.167,32.726],[-32.373,29.931],[-29.58,27.136],[-26.786,24.341],[-23.992,21.546],[-21.198,18.751],[-18.405,15.956],[-15.611,13.161],[-12.817,10.366],[-10.024,7.571],[-7.23,4.776],[-4.436,1.981],[-1.642,-0.814],[1.152,-1.58],[3.949,1.212],[6.745,4.004],[9.542,6.796],[12.338,9.589],[15.135,12.381],[17.931,15.173],[20.728,17.965],[23.524,20.757],[26.321,23.549],[29.117,26.342],[31.914,29.134],[34.711,31.926],[37.507,34.718],[40.304,37.51],[43.1,40.302],[45.897,43.095],[48.693,45.887],[51.49,48.679],[54.286,51.471],[57.083,54.263],[59.879,57.056],[62.676,59.848],[65.472,62.64],[68.269,65.432],[67.109,62.93],[64.455,60.015],[61.658,57.223],[58.862,54.431],[56.066,51.639],[53.269,48.846],[50.473,46.054],[47.676,43.262],[44.88,40.47],[42.083,37.677],[39.287,34.885],[36.491,32.093],[33.694,29.301],[30.898,26.508],[28.101,23.716],[25.305,20.924],[22.508,18.131],[19.712,15.339],[16.916,12.547],[14.119,9.755],[11.323,6.962],[8.526,4.17],[5.73,1.378],[2.933,-1.414],[0.137,-4.207]]};
 const PITCHES=[
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.82296, "y0": 16.24279, "z0": 1.64592, "vx0": -1.56846, "vy0": -42.97614, "vz0": -0.49162, "ax": 3.0469, "ay": 10.9927, "az": -4.79212, "tof": 0.3871, "px": 0.41525, "pz": 1.1322, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 96.9, "desc": "ball", "events": "", "ab": 1, "pn": 1, "inn": 1, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.78638, "y0": 16.18183, "z0": 1.64592, "vx0": -2.03592, "vy0": -42.63174, "vz0": -1.34456, "ax": 4.98606, "ay": 10.95925, "az": -4.65192, "tof": 0.3889, "px": 0.32951, "pz": 0.79999, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 96.2, "desc": "ball", "events": "", "ab": 1, "pn": 2, "inn": 1, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.78029, "y0": 16.21231, "z0": 1.63678, "vx0": -2.17067, "vy0": -42.78202, "vz0": -0.52225, "ax": 5.26455, "ay": 10.58575, "az": -4.59412, "tof": 0.3874, "px": 0.28847, "pz": 1.1233, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 96.5, "desc": "ball", "events": "", "ab": 1, "pn": 3, "inn": 1, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.77114, "y0": 16.20317, "z0": 1.64592, "vx0": -2.49366, "vy0": -43.48822, "vz0": -0.97798, "ax": 3.75896, "ay": 9.66314, "az": -5.03373, "tof": 0.3786, "px": 0.06082, "pz": 0.94896, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 98.1, "desc": "called_strike", "events": "", "ab": 1, "pn": 4, "inn": 1, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.77419, "y0": 16.20012, "z0": 1.62763, "vx0": -3.50141, "vy0": -43.09241, "vz0": -1.00564, "ax": 4.02572, "ay": 9.81632, "az": -4.98677, "tof": 0.3826, "px": -0.31095, "pz": 0.91203, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 97.4, "desc": "foul", "events": "", "ab": 1, "pn": 5, "inn": 1, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.78943, "y0": 16.20317, "z0": 1.63068, "vx0": -2.71237, "vy0": -43.37925, "vz0": -1.03003, "ax": 4.6785, "ay": 10.10789, "az": -4.49913, "tof": 0.3804, "px": 0.05252, "pz": 0.94262, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 97.9, "desc": "swinging_strike", "events": "strikeout", "ab": 1, "pn": 6, "inn": 1, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Judge", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.80772, "y0": 16.18488, "z0": 1.61544, "vx0": -3.40314, "vy0": -43.37819, "vz0": -0.38645, "ax": 4.41612, "ay": 9.6816, "az": -4.98483, "tof": 0.3792, "px": -0.20818, "pz": 1.14376, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 98.0, "desc": "called_strike", "events": "", "ab": 2, "pn": 1, "inn": 1, "topbot": "Top"},
-{"name": "Sinker", "batter": "Judge", "p": "L", "s": "R", "color": "#FF6600", "x0": 0.78029, "y0": 16.20012, "z0": 1.62763, "vx0": -3.71887, "vy0": -43.73503, "vz0": -1.51072, "ax": 6.79561, "ay": 9.47932, "az": -6.35513, "tof": 0.3758, "px": -0.19819, "pz": 0.6508, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 98.9, "desc": "called_strike", "events": "", "ab": 2, "pn": 2, "inn": 1, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Judge", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.72542, "y0": 16.12087, "z0": 1.61544, "vx0": -2.53198, "vy0": -44.04735, "vz0": -1.55979, "ax": 3.97614, "ay": 11.13216, "az": -3.83796, "tof": 0.3738, "px": 0.02369, "pz": 0.78241, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 99.5, "desc": "foul", "events": "", "ab": 2, "pn": 3, "inn": 1, "topbot": "Top"},
-{"name": "Curveball", "batter": "Judge", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.74066, "y0": 16.21841, "z0": 1.69774, "vx0": -1.99464, "vy0": -37.4266, "vz0": -0.45244, "ax": -1.80048, "ay": 8.15698, "az": -11.28964, "tof": 0.4432, "px": -0.30939, "pz": 0.49915, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 84.4, "desc": "swinging_strike", "events": "strikeout", "ab": 2, "pn": 4, "inn": 1, "topbot": "Top"},
-{"name": "Sinker", "batter": "Rice", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.78029, "y0": 16.15745, "z0": 1.61849, "vx0": -3.55174, "vy0": -43.48167, "vz0": -1.88242, "ax": 8.32182, "ay": 11.67587, "az": -6.35331, "tof": 0.3812, "px": -0.03611, "pz": 0.47656, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 98.5, "desc": "called_strike", "events": "", "ab": 3, "pn": 1, "inn": 1, "topbot": "Top"},
-{"name": "Sinker", "batter": "Rice", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.76505, "y0": 16.20012, "z0": 1.63068, "vx0": -3.62318, "vy0": -43.62071, "vz0": -1.13476, "ax": 8.16997, "ay": 11.75397, "az": -6.26646, "tof": 0.381, "px": -0.09219, "pz": 0.78619, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 98.7, "desc": "called_strike", "events": "", "ab": 3, "pn": 2, "inn": 1, "topbot": "Top"},
-{"name": "Sinker", "batter": "Rice", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.77724, "y0": 16.1544, "z0": 1.6002, "vx0": -4.11033, "vy0": -43.22661, "vz0": -1.32652, "ax": 7.20087, "ay": 11.06976, "az": -7.03657, "tof": 0.3825, "px": -0.33048, "pz": 0.62114, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 97.9, "desc": "ball", "events": "", "ab": 3, "pn": 3, "inn": 1, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rice", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.74371, "y0": 16.15745, "z0": 1.62763, "vx0": -3.24192, "vy0": -43.6296, "vz0": -1.6142, "ax": 4.22794, "ay": 11.58178, "az": -3.08929, "tof": 0.3796, "px": -0.22075, "pz": 0.80727, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 98.7, "desc": "swinging_strike", "events": "strikeout", "ab": 3, "pn": 4, "inn": 1, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Duran", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.50292, "y0": 16.35862, "z0": 1.86842, "vx0": 0.84931, "vy0": -43.10498, "vz0": -1.46154, "ax": -2.1122, "ay": 10.79523, "az": -3.75539, "tof": 0.3884, "px": -0.31235, "pz": 1.04671, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 97.2, "desc": "ball", "events": "", "ab": 4, "pn": 1, "inn": 1, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Duran", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.52426, "y0": 16.37081, "z0": 1.87452, "vx0": 0.81799, "vy0": -40.78907, "vz0": -1.56172, "ax": 2.77833, "ay": 8.37855, "az": -6.33768, "tof": 0.4078, "px": 0.01499, "pz": 0.76778, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 91.9, "desc": "hit_into_play", "events": "field_out", "ab": 4, "pn": 2, "inn": 1, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.53645, "y0": 16.33423, "z0": 1.85623, "vx0": 1.57851, "vy0": -42.92485, "vz0": -0.67423, "ax": -3.56677, "ay": 11.23822, "az": -5.29647, "tof": 0.3904, "px": -0.15537, "pz": 1.23383, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 96.8, "desc": "ball", "events": "", "ab": 5, "pn": 1, "inn": 1, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.54864, "y0": 16.28851, "z0": 1.85014, "vx0": 0.94702, "vy0": -42.94154, "vz0": -3.43336, "ax": -0.5275, "ay": 9.98827, "az": -3.30051, "tof": 0.3866, "px": -0.21429, "pz": 0.292, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 97.0, "desc": "ball", "events": "", "ab": 5, "pn": 2, "inn": 1, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.53035, "y0": 16.3769, "z0": 1.81966, "vx0": 1.13633, "vy0": -44.05938, "vz0": -2.3561, "ax": -1.87247, "ay": 10.81199, "az": -3.10725, "tof": 0.3796, "px": -0.21289, "pz": 0.72077, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 99.4, "desc": "called_strike", "events": "", "ab": 5, "pn": 3, "inn": 1, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.54254, "y0": 16.3007, "z0": 1.8227, "vx0": 1.85611, "vy0": -43.63786, "vz0": -1.71059, "ax": -4.11144, "ay": 11.00802, "az": -4.65802, "tof": 0.3821, "px": -0.09482, "pz": 0.86131, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 98.5, "desc": "foul", "events": "", "ab": 5, "pn": 4, "inn": 1, "topbot": "Bot"},
-{"name": "Slider", "batter": "Rafaela", "p": "R", "s": "R", "color": "#00CFFF", "x0": -0.55169, "y0": 16.34947, "z0": 1.85014, "vx0": 1.40569, "vy0": -39.66823, "vz0": -1.06794, "ax": 2.37122, "ay": 9.63936, "az": -9.01198, "tof": 0.423, "px": 0.23409, "pz": 0.68489, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 89.5, "desc": "hit_into_play", "events": "field_out", "ab": 5, "pn": 5, "inn": 1, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.43282, "y0": 16.35862, "z0": 1.88976, "vx0": 1.07048, "vy0": -43.70347, "vz0": -1.09689, "ax": -1.72443, "ay": 11.5459, "az": -3.9642, "tof": 0.3839, "px": -0.13121, "pz": 1.2093, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 98.6, "desc": "ball", "events": "", "ab": 6, "pn": 1, "inn": 1, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.42977, "y0": 16.34338, "z0": 1.86233, "vx0": 2.30654, "vy0": -43.77903, "vz0": -3.09087, "ax": -2.28664, "ay": 10.49819, "az": -3.47091, "tof": 0.3808, "px": 0.30928, "pz": 0.45297, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 99.0, "desc": "ball", "events": "", "ab": 6, "pn": 2, "inn": 1, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.55778, "y0": 16.34033, "z0": 1.8227, "vx0": 1.22582, "vy0": -43.54454, "vz0": -2.32573, "ax": -2.48522, "ay": 10.18402, "az": -4.47557, "tof": 0.3824, "px": -0.24616, "pz": 0.6365, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 98.2, "desc": "called_strike", "events": "", "ab": 6, "pn": 3, "inn": 1, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF6600", "x0": -0.52121, "y0": 16.35252, "z0": 1.81661, "vx0": 2.13673, "vy0": -43.45141, "vz0": -1.20277, "ax": -3.48168, "ay": 10.10655, "az": -6.26117, "tof": 0.3835, "px": 0.07996, "pz": 0.94647, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 98.0, "desc": "foul", "events": "", "ab": 6, "pn": 4, "inn": 1, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF6600", "x0": -0.49378, "y0": 16.33423, "z0": 1.81966, "vx0": 2.14064, "vy0": -43.47869, "vz0": -1.54045, "ax": -4.10702, "ay": 9.42475, "az": -6.40932, "tof": 0.3815, "px": 0.06602, "pz": 0.81431, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 98.0, "desc": "hit_into_play", "events": "field_out", "ab": 6, "pn": 5, "inn": 1, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.73457, "y0": 16.1483, "z0": 1.63982, "vx0": -4.24631, "vy0": -42.89025, "vz0": -1.90835, "ax": 5.0963, "ay": 9.67459, "az": -4.61577, "tof": 0.383, "px": -0.56615, "pz": 0.59627, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 97.2, "desc": "ball", "events": "", "ab": 7, "pn": 1, "inn": 2, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.762, "y0": 16.17269, "z0": 1.67945, "vx0": -2.92175, "vy0": -42.82771, "vz0": -1.89062, "ax": 4.17269, "ay": 9.76401, "az": -4.29007, "tof": 0.3844, "px": -0.09178, "pz": 0.66101, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 96.8, "desc": "called_strike", "events": "", "ab": 7, "pn": 2, "inn": 2, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.79248, "y0": 16.20012, "z0": 1.65202, "vx0": -2.63585, "vy0": -43.38449, "vz0": -1.05985, "ax": 4.38023, "ay": 9.7643, "az": -4.54952, "tof": 0.3797, "px": 0.06663, "pz": 0.95222, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 97.9, "desc": "swinging_strike", "events": "", "ab": 7, "pn": 3, "inn": 2, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.74066, "y0": 16.2245, "z0": 1.64287, "vx0": -2.86746, "vy0": -43.66571, "vz0": -1.44454, "ax": 4.6984, "ay": 10.69066, "az": -4.45198, "tof": 0.3793, "px": -0.05413, "pz": 0.80385, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 98.6, "desc": "called_strike", "events": "strikeout", "ab": 7, "pn": 4, "inn": 2, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Grichuk", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.77419, "y0": 16.18183, "z0": 1.63678, "vx0": -3.0299, "vy0": -43.52263, "vz0": -2.07819, "ax": 3.6646, "ay": 9.75147, "az": -4.46131, "tof": 0.3779, "px": -0.14464, "pz": 0.55743, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 98.3, "desc": "called_strike", "events": "", "ab": 8, "pn": 1, "inn": 2, "topbot": "Top"},
-{"name": "Sinker", "batter": "Grichuk", "p": "L", "s": "R", "color": "#FF6600", "x0": 0.80772, "y0": 16.13306, "z0": 1.62458, "vx0": -2.55888, "vy0": -43.13565, "vz0": -2.1238, "ax": 6.67072, "ay": 9.91702, "az": -6.87927, "tof": 0.3807, "px": 0.26294, "pz": 0.35501, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 97.4, "desc": "ball", "events": "", "ab": 8, "pn": 2, "inn": 2, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Grichuk", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.81382, "y0": 16.11173, "z0": 1.65202, "vx0": -2.5963, "vy0": -43.42435, "vz0": -1.23728, "ax": 4.77612, "ay": 10.8211, "az": -3.66436, "tof": 0.379, "px": 0.13428, "pz": 0.9384, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 98.1, "desc": "foul", "events": "", "ab": 8, "pn": 3, "inn": 2, "topbot": "Top"},
-{"name": "Cutter", "batter": "Grichuk", "p": "L", "s": "R", "color": "#FFD700", "x0": 0.78943, "y0": 16.16659, "z0": 1.62458, "vx0": -1.60921, "vy0": -41.00287, "vz0": -0.60236, "ax": -0.32583, "ay": 8.27743, "az": -7.3506, "tof": 0.3999, "px": 0.11673, "pz": 0.84905, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 92.4, "desc": "foul", "events": "", "ab": 8, "pn": 4, "inn": 2, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Grichuk", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.80162, "y0": 16.1544, "z0": 1.63678, "vx0": -2.85607, "vy0": -43.68809, "vz0": -1.39218, "ax": 4.38988, "ay": 11.10583, "az": -4.07609, "tof": 0.378, "px": -0.00229, "pz": 0.84075, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 98.7, "desc": "swinging_strike", "events": "strikeout", "ab": 8, "pn": 5, "inn": 2, "topbot": "Top"},
-{"name": "Sinker", "batter": "Grisham", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.81382, "y0": 16.13916, "z0": 1.62763, "vx0": -3.09951, "vy0": -43.31114, "vz0": -1.58732, "ax": 7.06826, "ay": 10.50402, "az": -6.05321, "tof": 0.3802, "px": 0.0876, "pz": 0.62156, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 97.9, "desc": "called_strike", "events": "", "ab": 9, "pn": 1, "inn": 2, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Grisham", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.77419, "y0": 16.26718, "z0": 1.65506, "vx0": -2.85534, "vy0": -43.99889, "vz0": -1.30139, "ax": 3.98222, "ay": 10.91362, "az": -3.81557, "tof": 0.3776, "px": -0.05957, "pz": 0.91677, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 99.4, "desc": "foul", "events": "", "ab": 9, "pn": 2, "inn": 2, "topbot": "Top"},
-{"name": "Curveball", "batter": "Grisham", "p": "L", "s": "L", "color": "#7B68EE", "x0": 0.74981, "y0": 16.23365, "z0": 1.7465, "vx0": -1.44335, "vy0": -37.112, "vz0": 0.09627, "ax": -1.38791, "ay": 6.96848, "az": -11.58446, "tof": 0.4443, "px": -0.0213, "pz": 0.76468, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 83.6, "desc": "hit_into_play", "events": "field_out", "ab": 9, "pn": 3, "inn": 2, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Contreras", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.54254, "y0": 16.32204, "z0": 1.86538, "vx0": 1.83113, "vy0": -43.13667, "vz0": -1.64322, "ax": -1.71852, "ay": 9.73805, "az": -3.10226, "tof": 0.3851, "px": 0.05677, "pz": 1.02349, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 97.3, "desc": "swinging_strike", "events": "", "ab": 10, "pn": 1, "inn": 2, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Contreras", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.5334, "y0": 16.36776, "z0": 1.85928, "vx0": 2.0843, "vy0": -43.46912, "vz0": -2.6294, "ax": -1.49417, "ay": 10.37182, "az": -2.64247, "tof": 0.3842, "px": 0.17525, "pz": 0.66876, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 98.2, "desc": "called_strike", "events": "", "ab": 10, "pn": 2, "inn": 2, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Contreras", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.49073, "y0": 16.37081, "z0": 1.85623, "vx0": 1.7824, "vy0": -43.33039, "vz0": -2.23228, "ax": -1.66864, "ay": 9.48503, "az": -3.42786, "tof": 0.384, "px": 0.09168, "pz": 0.76888, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 97.7, "desc": "foul", "events": "", "ab": 10, "pn": 3, "inn": 2, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Contreras", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.54559, "y0": 16.34338, "z0": 1.86233, "vx0": 1.32189, "vy0": -42.29997, "vz0": -1.013, "ax": 1.93382, "ay": 9.3416, "az": -5.89574, "tof": 0.3932, "px": 0.10955, "pz": 1.05773, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 95.3, "desc": "swinging_strike", "events": "strikeout", "ab": 10, "pn": 4, "inn": 2, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Abreu", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.50292, "y0": 16.33728, "z0": 1.86538, "vx0": 1.40311, "vy0": -43.50756, "vz0": -2.23739, "ax": -0.95046, "ay": 9.99711, "az": -3.62515, "tof": 0.3824, "px": -0.02502, "pz": 0.76847, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 98.1, "desc": "called_strike", "events": "", "ab": 11, "pn": 1, "inn": 2, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Abreu", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.54864, "y0": 16.34947, "z0": 1.8227, "vx0": 1.86293, "vy0": -43.70995, "vz0": -2.58742, "ax": -1.48094, "ay": 9.77765, "az": -3.56702, "tof": 0.3803, "px": 0.07079, "pz": 0.60275, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 98.7, "desc": "foul", "events": "", "ab": 11, "pn": 2, "inn": 2, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Abreu", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.53645, "y0": 16.38605, "z0": 1.88062, "vx0": 0.90072, "vy0": -41.73491, "vz0": -0.78192, "ax": 2.57941, "ay": 9.09449, "az": -6.98419, "tof": 0.3997, "px": 0.00631, "pz": 1.07498, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 94.0, "desc": "ball", "events": "", "ab": 11, "pn": 3, "inn": 2, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Abreu", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.55169, "y0": 16.37386, "z0": 1.85318, "vx0": 0.7668, "vy0": -41.22377, "vz0": -0.67342, "ax": 2.2964, "ay": 8.60621, "az": -7.72691, "tof": 0.4037, "px": -0.07373, "pz": 1.02514, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 92.8, "desc": "ball", "events": "", "ab": 11, "pn": 4, "inn": 2, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Abreu", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.53035, "y0": 16.35557, "z0": 1.84709, "vx0": 0.45776, "vy0": -43.10334, "vz0": -2.04952, "ax": -1.47539, "ay": 10.45303, "az": -3.13963, "tof": 0.3877, "px": -0.44912, "pz": 0.84, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 97.2, "desc": "ball", "events": "", "ab": 11, "pn": 5, "inn": 2, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Abreu", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.50292, "y0": 16.3891, "z0": 1.84709, "vx0": 1.04624, "vy0": -41.73443, "vz0": -1.80822, "ax": 2.84701, "ay": 8.24563, "az": -6.98605, "tof": 0.398, "px": 0.11326, "pz": 0.63664, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 94.0, "desc": "foul", "events": "", "ab": 11, "pn": 6, "inn": 2, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Abreu", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.48768, "y0": 16.34642, "z0": 1.86233, "vx0": 0.80829, "vy0": -43.70773, "vz0": -2.02358, "ax": 0.30009, "ay": 10.35947, "az": -4.33682, "tof": 0.3813, "px": -0.15651, "pz": 0.80644, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 98.5, "desc": "foul", "events": "", "ab": 11, "pn": 7, "inn": 2, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Abreu", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.5395, "y0": 16.31594, "z0": 1.8227, "vx0": 1.24017, "vy0": -41.7941, "vz0": -2.88186, "ax": 2.65035, "ay": 7.94349, "az": -7.03148, "tof": 0.3949, "px": 0.13918, "pz": 0.18813, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 94.3, "desc": "blocked_ball", "events": "walk", "ab": 11, "pn": 8, "inn": 2, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Story", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.49378, "y0": 16.34642, "z0": 1.85318, "vx0": 1.93259, "vy0": -43.07846, "vz0": -1.38342, "ax": -3.91221, "ay": 10.25483, "az": -5.16067, "tof": 0.3873, "px": 0.00023, "pz": 0.97204, "sz_top": 0.98814, "sz_bot": 0.49869, "speed": 97.2, "desc": "foul", "events": "", "ab": 12, "pn": 1, "inn": 2, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Story", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.57912, "y0": 16.33118, "z0": 1.82575, "vx0": 1.22249, "vy0": -42.21435, "vz0": -2.52707, "ax": 0.21006, "ay": 8.33815, "az": -6.13013, "tof": 0.3918, "px": -0.08224, "pz": 0.41055, "sz_top": 0.98814, "sz_bot": 0.49869, "speed": 95.2, "desc": "ball", "events": "", "ab": 12, "pn": 2, "inn": 2, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Story", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.54559, "y0": 16.383, "z0": 1.84709, "vx0": 0.84251, "vy0": -42.2857, "vz0": -1.74837, "ax": 0.4204, "ay": 9.11173, "az": -6.65139, "tof": 0.3939, "px": -0.18281, "pz": 0.69924, "sz_top": 0.98814, "sz_bot": 0.49869, "speed": 95.3, "desc": "hit_into_play", "events": "field_error", "ab": 12, "pn": 3, "inn": 2, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Mayer", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.48768, "y0": 16.383, "z0": 1.85623, "vx0": 0.44806, "vy0": -43.70673, "vz0": -1.45343, "ax": -2.04591, "ay": 11.13857, "az": -3.10217, "tof": 0.3837, "px": -0.44539, "pz": 1.09538, "sz_top": 1.01864, "sz_bot": 0.51408, "speed": 98.5, "desc": "ball", "events": "", "ab": 13, "pn": 1, "inn": 2, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Mayer", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.53645, "y0": 16.36776, "z0": 1.83185, "vx0": 0.36297, "vy0": -42.71091, "vz0": -1.84425, "ax": -1.38798, "ay": 11.49364, "az": -3.03775, "tof": 0.394, "px": -0.48843, "pz": 0.89303, "sz_top": 1.01864, "sz_bot": 0.51408, "speed": 96.4, "desc": "ball", "events": "", "ab": 13, "pn": 2, "inn": 2, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Mayer", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.43586, "y0": 16.30985, "z0": 1.87147, "vx0": 1.23214, "vy0": -42.73001, "vz0": -2.19273, "ax": -0.62351, "ay": 10.79608, "az": -2.55838, "tof": 0.3909, "px": 0.00619, "pz": 0.83551, "sz_top": 1.01864, "sz_bot": 0.51408, "speed": 96.5, "desc": "foul", "events": "", "ab": 13, "pn": 3, "inn": 2, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Mayer", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.4511, "y0": 16.30985, "z0": 1.88062, "vx0": 0.90299, "vy0": -43.29742, "vz0": -2.4691, "ax": -1.01598, "ay": 10.28406, "az": -3.25672, "tof": 0.3843, "px": -0.16754, "pz": 0.71023, "sz_top": 1.01864, "sz_bot": 0.51408, "speed": 97.7, "desc": "hit_into_play", "events": "double", "ab": 13, "pn": 4, "inn": 2, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Durbin", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.50597, "y0": 16.27937, "z0": 1.8227, "vx0": 1.50142, "vy0": -42.32455, "vz0": -1.32558, "ax": -4.77414, "ay": 10.00273, "az": -6.04995, "tof": 0.3926, "px": -0.23939, "pz": 0.88254, "sz_top": 0.89826, "sz_bot": 0.45333, "speed": 95.4, "desc": "hit_into_play", "events": "field_out", "ab": 14, "pn": 1, "inn": 2, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Chisholm Jr.", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.78029, "y0": 16.2306, "z0": 1.69469, "vx0": -2.0575, "vy0": -42.68425, "vz0": -2.2354, "ax": 3.88733, "ay": 11.28818, "az": -3.57771, "tof": 0.3903, "px": 0.23686, "pz": 0.57015, "sz_top": 0.96193, "sz_bot": 0.48546, "speed": 96.5, "desc": "called_strike", "events": "", "ab": 15, "pn": 1, "inn": 3, "topbot": "Top"},
-{"name": "Cutter", "batter": "Chisholm Jr.", "p": "L", "s": "L", "color": "#FFD700", "x0": 0.79858, "y0": 16.17269, "z0": 1.63982, "vx0": -2.13698, "vy0": -40.02768, "vz0": -0.56562, "ax": -0.55051, "ay": 9.00418, "az": -6.63529, "tof": 0.4124, "px": -0.13118, "pz": 0.89627, "sz_top": 0.96193, "sz_bot": 0.48546, "speed": 90.3, "desc": "swinging_strike", "events": "", "ab": 15, "pn": 2, "inn": 3, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Chisholm Jr.", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.7681, "y0": 16.24889, "z0": 1.66116, "vx0": -2.87397, "vy0": -43.23949, "vz0": -1.11182, "ax": 4.72144, "ay": 11.56082, "az": -4.92677, "tof": 0.3857, "px": -0.03418, "pz": 0.90087, "sz_top": 0.96193, "sz_bot": 0.48546, "speed": 97.7, "desc": "called_strike", "events": "strikeout", "ab": 15, "pn": 3, "inn": 3, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.77114, "y0": 16.1483, "z0": 1.64897, "vx0": -2.9897, "vy0": -43.28898, "vz0": -1.34313, "ax": 5.12526, "ay": 10.1922, "az": -5.07202, "tof": 0.3801, "px": -0.03946, "pz": 0.80077, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 97.8, "desc": "swinging_strike", "events": "", "ab": 16, "pn": 1, "inn": 3, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.78334, "y0": 16.13306, "z0": 1.63068, "vx0": -2.62764, "vy0": -43.63555, "vz0": -1.14463, "ax": 4.05006, "ay": 10.35759, "az": -4.79702, "tof": 0.3767, "px": 0.04591, "pz": 0.88577, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 98.5, "desc": "foul", "events": "", "ab": 16, "pn": 2, "inn": 3, "topbot": "Top"},
-{"name": "Curveball", "batter": "Caballero", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.72542, "y0": 16.23365, "z0": 1.72517, "vx0": -0.70628, "vy0": -36.80136, "vz0": -0.57899, "ax": -1.9335, "ay": 6.75409, "az": -10.82057, "tof": 0.4478, "px": 0.23185, "pz": 0.48963, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 82.9, "desc": "hit_into_play", "events": "field_out", "ab": 16, "pn": 3, "inn": 3, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Wells", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.77419, "y0": 16.25194, "z0": 1.69774, "vx0": -1.54852, "vy0": -43.28904, "vz0": -0.77468, "ax": 4.11698, "ay": 10.44256, "az": -3.94077, "tof": 0.3832, "px": 0.44724, "pz": 1.13891, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 97.6, "desc": "ball", "events": "", "ab": 17, "pn": 1, "inn": 3, "topbot": "Top"},
-{"name": "Sinker", "batter": "Wells", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.8321, "y0": 16.15135, "z0": 1.63373, "vx0": -3.46992, "vy0": -42.9764, "vz0": -1.19125, "ax": 5.70448, "ay": 8.95269, "az": -7.1968, "tof": 0.3809, "px": -0.12631, "pz": 0.70113, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 97.1, "desc": "called_strike", "events": "", "ab": 17, "pn": 2, "inn": 3, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Wells", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.7559, "y0": 16.11782, "z0": 1.63678, "vx0": -3.37591, "vy0": -43.36375, "vz0": -1.56699, "ax": 3.69337, "ay": 10.23556, "az": -3.77822, "tof": 0.3787, "px": -0.29367, "pz": 0.79032, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 98.0, "desc": "swinging_strike", "events": "", "ab": 17, "pn": 3, "inn": 3, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Wells", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.75286, "y0": 16.10868, "z0": 1.64592, "vx0": -3.31427, "vy0": -43.46209, "vz0": -2.40644, "ax": 3.57169, "ay": 10.77628, "az": -3.19168, "tof": 0.3785, "px": -0.27847, "pz": 0.51849, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 98.4, "desc": "ball", "events": "", "ab": 17, "pn": 4, "inn": 3, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Wells", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.80162, "y0": 16.03858, "z0": 1.63373, "vx0": -2.99249, "vy0": -43.34021, "vz0": -1.87667, "ax": 3.49449, "ay": 9.47645, "az": -3.92311, "tof": 0.3755, "px": -0.10777, "pz": 0.66822, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 97.9, "desc": "foul", "events": "", "ab": 17, "pn": 5, "inn": 3, "topbot": "Top"},
-{"name": "Cutter", "batter": "Wells", "p": "L", "s": "L", "color": "#FFD700", "x0": 0.81077, "y0": 16.23365, "z0": 1.64897, "vx0": -1.66053, "vy0": -40.31447, "vz0": 0.02203, "ax": 0.48972, "ay": 8.24751, "az": -8.03353, "tof": 0.4091, "px": 0.16075, "pz": 1.05641, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 90.8, "desc": "foul", "events": "", "ab": 17, "pn": 6, "inn": 3, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Wells", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.74676, "y0": 16.05382, "z0": 1.64897, "vx0": -2.87065, "vy0": -43.4607, "vz0": -1.61879, "ax": 3.99118, "ay": 10.35484, "az": -4.39556, "tof": 0.3763, "px": -0.0832, "pz": 0.74799, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 98.2, "desc": "hit_into_play", "events": "field_out", "ab": 17, "pn": 7, "inn": 3, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.51206, "y0": 16.33728, "z0": 1.86842, "vx0": 1.18499, "vy0": -42.73109, "vz0": -1.41958, "ax": -1.71564, "ay": 10.41588, "az": -2.91197, "tof": 0.3908, "px": -0.16189, "pz": 1.11251, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 96.4, "desc": "ball", "events": "", "ab": 18, "pn": 1, "inn": 3, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.53035, "y0": 16.33118, "z0": 1.85928, "vx0": 1.58965, "vy0": -42.75995, "vz0": -2.09934, "ax": -2.62528, "ay": 10.52484, "az": -2.46142, "tof": 0.3906, "px": -0.08046, "pz": 0.86625, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 96.5, "desc": "foul", "events": "", "ab": 18, "pn": 2, "inn": 3, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.5334, "y0": 16.33423, "z0": 1.86842, "vx0": 0.84388, "vy0": -40.83227, "vz0": -0.68528, "ax": 1.62596, "ay": 8.31119, "az": -7.81925, "tof": 0.4063, "px": -0.06866, "pz": 1.018, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 91.9, "desc": "foul", "events": "", "ab": 18, "pn": 3, "inn": 3, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.52426, "y0": 16.33118, "z0": 1.88976, "vx0": 1.5642, "vy0": -40.41902, "vz0": -1.42703, "ax": 2.87392, "ay": 7.63129, "az": -7.85929, "tof": 0.4092, "px": 0.3328, "pz": 0.71922, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 91.0, "desc": "foul_tip", "events": "strikeout", "ab": 18, "pn": 4, "inn": 3, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Duran", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.46025, "y0": 16.33728, "z0": 1.87757, "vx0": 1.50971, "vy0": -41.20022, "vz0": -1.77046, "ax": 2.54391, "ay": 8.24242, "az": -6.6875, "tof": 0.4022, "px": 0.33492, "pz": 0.68186, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 92.8, "desc": "foul", "events": "", "ab": 19, "pn": 1, "inn": 3, "topbot": "Bot"},
-{"name": "Curveball", "batter": "Duran", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.48768, "y0": 16.383, "z0": 1.88671, "vx0": 0.29086, "vy0": -37.39888, "vz0": -0.0573, "ax": 1.30376, "ay": 7.64108, "az": -13.30048, "tof": 0.4469, "px": -0.2431, "pz": 0.69413, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 84.2, "desc": "hit_into_play", "events": "single", "ab": 19, "pn": 2, "inn": 3, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.56083, "y0": 16.32204, "z0": 1.83185, "vx0": 1.52292, "vy0": -41.04699, "vz0": -3.2805, "ax": 1.86194, "ay": 7.66205, "az": -6.04734, "tof": 0.4022, "px": 0.19098, "pz": 0.06855, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 92.7, "desc": "blocked_ball", "events": "", "ab": 20, "pn": 1, "inn": 3, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.52426, "y0": 16.32204, "z0": 1.8288, "vx0": 1.79037, "vy0": -42.31885, "vz0": -2.88877, "ax": -2.55156, "ay": 8.88177, "az": -3.16732, "tof": 0.3916, "px": 0.00993, "pz": 0.4728, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 95.6, "desc": "called_strike", "events": "", "ab": 20, "pn": 2, "inn": 3, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.55474, "y0": 16.33728, "z0": 1.85318, "vx0": 1.2552, "vy0": -40.91204, "vz0": -1.66555, "ax": 1.84639, "ay": 8.55645, "az": -5.5315, "tof": 0.406, "px": 0.09366, "pz": 0.76861, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 92.2, "desc": "hit_into_play", "events": "field_out", "ab": 20, "pn": 3, "inn": 3, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.50292, "y0": 16.39214, "z0": 1.87452, "vx0": 0.74886, "vy0": -42.8017, "vz0": -1.75236, "ax": -2.24855, "ay": 9.59191, "az": -3.58578, "tof": 0.3899, "px": -0.35814, "pz": 0.94653, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 96.5, "desc": "ball", "events": "", "ab": 21, "pn": 1, "inn": 3, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.47244, "y0": 16.36776, "z0": 1.86233, "vx0": 0.36451, "vy0": -41.16153, "vz0": -2.1814, "ax": 2.27102, "ay": 8.16968, "az": -5.79689, "tof": 0.4033, "px": -0.16222, "pz": 0.56034, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 92.7, "desc": "called_strike", "events": "", "ab": 21, "pn": 2, "inn": 3, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.42367, "y0": 16.33728, "z0": 1.88671, "vx0": 1.82352, "vy0": -42.97616, "vz0": -2.24373, "ax": -2.14434, "ay": 10.11664, "az": -2.63622, "tof": 0.3878, "px": 0.14753, "pz": 0.83359, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 97.0, "desc": "foul", "events": "", "ab": 21, "pn": 3, "inn": 3, "topbot": "Bot"},
-{"name": "Curveball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.39319, "y0": 16.28851, "z0": 1.85928, "vx0": 0.94108, "vy0": -37.47298, "vz0": -1.14477, "ax": 2.27911, "ay": 7.94014, "az": -11.64425, "tof": 0.444, "px": 0.22887, "pz": 0.32674, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 84.5, "desc": "foul", "events": "", "ab": 21, "pn": 4, "inn": 3, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.51511, "y0": 16.34033, "z0": 1.84709, "vx0": 1.01466, "vy0": -42.49185, "vz0": -1.29907, "ax": -0.35985, "ay": 10.20757, "az": -3.42257, "tof": 0.3929, "px": -0.13781, "pz": 1.0989, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 95.8, "desc": "foul", "events": "", "ab": 21, "pn": 5, "inn": 3, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.42977, "y0": 16.32509, "z0": 1.9111, "vx0": 0.73908, "vy0": -42.95366, "vz0": -0.96541, "ax": -1.56294, "ay": 9.21303, "az": -4.26984, "tof": 0.386, "px": -0.24466, "pz": 1.25332, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 96.7, "desc": "ball", "events": "", "ab": 21, "pn": 6, "inn": 3, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.50597, "y0": 16.39214, "z0": 1.85928, "vx0": 0.60449, "vy0": -43.33436, "vz0": -1.90224, "ax": -1.57293, "ay": 9.59755, "az": -3.38858, "tof": 0.3847, "px": -0.37267, "pz": 0.90294, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 97.7, "desc": "foul", "events": "", "ab": 21, "pn": 7, "inn": 3, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF6600", "x0": -0.44196, "y0": 16.34033, "z0": 1.81661, "vx0": 2.00234, "vy0": -43.09299, "vz0": -2.03432, "ax": -5.53029, "ay": 9.91992, "az": -5.54927, "tof": 0.3863, "px": -0.02575, "pz": 0.6596, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 97.3, "desc": "hit_into_play", "events": "field_out", "ab": 21, "pn": 8, "inn": 3, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.75286, "y0": 16.21231, "z0": 1.68554, "vx0": -3.56919, "vy0": -42.22532, "vz0": -2.61466, "ax": 3.71541, "ay": 10.32391, "az": -3.3182, "tof": 0.3926, "px": -0.40167, "pz": 0.42091, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 95.7, "desc": "ball", "events": "", "ab": 22, "pn": 1, "inn": 4, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.79553, "y0": 16.16964, "z0": 1.62763, "vx0": -3.58107, "vy0": -42.35044, "vz0": -1.81662, "ax": 3.63592, "ay": 10.23572, "az": -4.13904, "tof": 0.39, "px": -0.3628, "pz": 0.62866, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 95.8, "desc": "ball", "events": "", "ab": 22, "pn": 2, "inn": 4, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.79248, "y0": 16.20622, "z0": 1.6703, "vx0": -2.84481, "vy0": -42.54197, "vz0": -1.34843, "ax": 2.396, "ay": 10.21712, "az": -3.31464, "tof": 0.389, "px": -0.16132, "pz": 0.91569, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 96.1, "desc": "swinging_strike", "events": "", "ab": 22, "pn": 3, "inn": 4, "topbot": "Top"},
-{"name": "Sinker", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF6600", "x0": 0.81991, "y0": 16.18488, "z0": 1.66116, "vx0": -2.61819, "vy0": -42.29034, "vz0": -0.52167, "ax": 5.75692, "ay": 9.03628, "az": -6.88901, "tof": 0.3886, "px": 0.18643, "pz": 0.98644, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 95.4, "desc": "hit_into_play", "events": "single", "ab": 22, "pn": 4, "inn": 4, "topbot": "Top"},
-{"name": "Cutter", "batter": "Judge", "p": "L", "s": "R", "color": "#FFD700", "x0": 0.79858, "y0": 16.21231, "z0": 1.67335, "vx0": -2.94754, "vy0": -40.25909, "vz0": -1.69023, "ax": -1.15962, "ay": 8.57835, "az": -7.43588, "tof": 0.4099, "px": -0.50735, "pz": 0.41437, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 90.9, "desc": "ball", "events": "", "ab": 23, "pn": 1, "inn": 4, "topbot": "Top"},
-{"name": "Sinker", "batter": "Judge", "p": "L", "s": "R", "color": "#FF6600", "x0": 0.82296, "y0": 16.1605, "z0": 1.68554, "vx0": -2.10345, "vy0": -42.58657, "vz0": -0.88516, "ax": 5.48383, "ay": 9.68825, "az": -6.54914, "tof": 0.3863, "px": 0.37475, "pz": 0.89939, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 96.0, "desc": "ball", "events": "", "ab": 23, "pn": 2, "inn": 4, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Judge", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.81991, "y0": 16.24279, "z0": 1.69469, "vx0": -1.7428, "vy0": -42.14475, "vz0": -0.08777, "ax": 2.3612, "ay": 10.49797, "az": -4.62825, "tof": 0.3945, "px": 0.29206, "pz": 1.33895, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 95.1, "desc": "ball", "events": "", "ab": 23, "pn": 3, "inn": 4, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Judge", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.81686, "y0": 16.11782, "z0": 1.68554, "vx0": -2.87227, "vy0": -41.83124, "vz0": -1.09336, "ax": 2.7471, "ay": 10.66573, "az": -4.37895, "tof": 0.3949, "px": -0.13149, "pz": 0.93835, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 94.5, "desc": "called_strike", "events": "", "ab": 23, "pn": 4, "inn": 4, "topbot": "Top"},
-{"name": "Sinker", "batter": "Judge", "p": "L", "s": "R", "color": "#FF6600", "x0": 0.81382, "y0": 16.14221, "z0": 1.65202, "vx0": -2.28652, "vy0": -42.25487, "vz0": -0.88034, "ax": 6.81357, "ay": 10.02829, "az": -6.42534, "tof": 0.3898, "px": 0.38539, "pz": 0.86315, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 95.4, "desc": "ball", "events": "walk", "ab": 23, "pn": 5, "inn": 4, "topbot": "Top"},
-{"name": "Sinker", "batter": "Rice", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.79858, "y0": 16.1605, "z0": 1.6764, "vx0": -2.89374, "vy0": -42.48453, "vz0": -0.57565, "ax": 6.47136, "ay": 10.46482, "az": -6.52919, "tof": 0.3888, "px": 0.10732, "pz": 1.00358, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 96.0, "desc": "hit_into_play", "events": "single", "ab": 24, "pn": 1, "inn": 4, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.7681, "y0": 16.1483, "z0": 1.67335, "vx0": -3.54432, "vy0": -42.559, "vz0": -1.13678, "ax": 2.54029, "ay": 10.33244, "az": -4.64514, "tof": 0.3875, "px": -0.4458, "pz": 0.91386, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 96.3, "desc": "ball", "events": "", "ab": 25, "pn": 1, "inn": 4, "topbot": "Top"},
-{"name": "Curveball", "batter": "Stanton", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.78029, "y0": 16.18488, "z0": 1.70078, "vx0": -2.40566, "vy0": -36.98996, "vz0": -1.03167, "ax": -0.57999, "ay": 7.62476, "az": -10.78646, "tof": 0.4464, "px": -0.3554, "pz": 0.26797, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 83.5, "desc": "swinging_strike", "events": "", "ab": 25, "pn": 2, "inn": 4, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.79858, "y0": 16.19402, "z0": 1.6764, "vx0": -1.97483, "vy0": -42.82677, "vz0": -1.19721, "ax": 1.90113, "ay": 10.3696, "az": -4.53522, "tof": 0.3861, "px": 0.15706, "pz": 0.90667, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 96.6, "desc": "called_strike", "events": "", "ab": 25, "pn": 3, "inn": 4, "topbot": "Top"},
-{"name": "Curveball", "batter": "Stanton", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.762, "y0": 16.19402, "z0": 1.71907, "vx0": -0.80966, "vy0": -36.98676, "vz0": -1.08207, "ax": -1.13139, "ay": 7.47163, "az": -11.83797, "tof": 0.4463, "px": 0.29485, "pz": 0.17024, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 83.3, "desc": "blocked_ball", "events": "", "ab": 25, "pn": 4, "inn": 4, "topbot": "Top"},
-{"name": "Changeup", "batter": "Stanton", "p": "L", "s": "R", "color": "#32CD32", "x0": 0.87782, "y0": 16.16659, "z0": 1.57886, "vx0": -2.75811, "vy0": -40.05893, "vz0": -0.76607, "ax": 2.25036, "ay": 8.11966, "az": -10.24186, "tof": 0.4098, "px": -0.09208, "pz": 0.48366, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 90.4, "desc": "swinging_strike", "events": "strikeout", "ab": 25, "pn": 5, "inn": 4, "topbot": "Top"},
-{"name": "Cutter", "batter": "Grichuk", "p": "L", "s": "R", "color": "#FFD700", "x0": 0.82601, "y0": 16.1544, "z0": 1.63373, "vx0": -2.35373, "vy0": -39.95852, "vz0": -1.64913, "ax": -1.24326, "ay": 7.3647, "az": -7.96976, "tof": 0.4089, "px": -0.23913, "pz": 0.34819, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 90.1, "desc": "ball", "events": "", "ab": 26, "pn": 1, "inn": 4, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Grichuk", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.79553, "y0": 16.09649, "z0": 1.67335, "vx0": -2.65836, "vy0": -42.62538, "vz0": -1.2478, "ax": 1.91491, "ay": 9.60401, "az": -4.46967, "tof": 0.3841, "px": -0.10602, "pz": 0.88845, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 96.2, "desc": "hit_into_play", "events": "field_out", "ab": 26, "pn": 2, "inn": 4, "topbot": "Top"},
-{"name": "Sinker", "batter": "Grisham", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.78943, "y0": 16.18488, "z0": 1.63068, "vx0": -2.97133, "vy0": -42.50919, "vz0": -0.57098, "ax": 6.54233, "ay": 9.89606, "az": -7.55001, "tof": 0.3881, "px": 0.07042, "pz": 0.89311, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 96.0, "desc": "called_strike", "events": "", "ab": 27, "pn": 1, "inn": 4, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Grisham", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.81382, "y0": 16.14526, "z0": 1.65811, "vx0": -3.08869, "vy0": -42.90123, "vz0": -2.07335, "ax": 4.12696, "ay": 12.08188, "az": -3.54611, "tof": 0.3874, "px": -0.11229, "pz": 0.60871, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 97.1, "desc": "foul", "events": "", "ab": 27, "pn": 2, "inn": 4, "topbot": "Top"},
-{"name": "Cutter", "batter": "Grisham", "p": "L", "s": "L", "color": "#FFD700", "x0": 0.7681, "y0": 16.11782, "z0": 1.62763, "vx0": -2.46447, "vy0": -40.26036, "vz0": -1.25758, "ax": 0.1509, "ay": 7.85042, "az": -7.30297, "tof": 0.4057, "px": -0.22923, "pz": 0.56362, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 90.8, "desc": "called_strike", "events": "strikeout", "ab": 27, "pn": 3, "inn": 4, "topbot": "Top"},
-{"name": "Sinker", "batter": "Contreras", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.55474, "y0": 16.32814, "z0": 1.85014, "vx0": 1.52871, "vy0": -42.61095, "vz0": -1.74897, "ax": -3.9577, "ay": 9.34835, "az": -5.34289, "tof": 0.3897, "px": -0.22115, "pz": 0.80417, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 96.1, "desc": "foul", "events": "", "ab": 28, "pn": 1, "inn": 4, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Contreras", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.52426, "y0": 16.37386, "z0": 1.87452, "vx0": 1.03302, "vy0": -41.09063, "vz0": -0.85091, "ax": 2.94792, "ay": 8.63834, "az": -7.88094, "tof": 0.4052, "px": 0.1114, "pz": 0.958, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 92.5, "desc": "foul", "events": "", "ab": 28, "pn": 2, "inn": 4, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Contreras", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.48463, "y0": 16.34033, "z0": 1.86233, "vx0": 2.9371, "vy0": -43.11598, "vz0": -2.25226, "ax": -0.55729, "ay": 9.92276, "az": -4.24819, "tof": 0.3861, "px": 0.62031, "pz": 0.70618, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 97.4, "desc": "ball", "events": "", "ab": 28, "pn": 3, "inn": 4, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Contreras", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.5273, "y0": 16.33118, "z0": 1.8349, "vx0": 1.45898, "vy0": -42.52127, "vz0": -1.72401, "ax": -5.00024, "ay": 9.94228, "az": -5.72291, "tof": 0.3919, "px": -0.29142, "pz": 0.76499, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 95.9, "desc": "foul", "events": "", "ab": 28, "pn": 4, "inn": 4, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Contreras", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.51206, "y0": 16.34338, "z0": 1.85014, "vx0": 0.95561, "vy0": -42.96925, "vz0": -0.52952, "ax": 0.06981, "ay": 11.00569, "az": -4.45086, "tof": 0.3898, "px": -0.13194, "pz": 1.34351, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 96.9, "desc": "ball", "events": "", "ab": 28, "pn": 5, "inn": 4, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Contreras", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.47244, "y0": 16.29461, "z0": 1.83794, "vx0": 1.77887, "vy0": -42.9001, "vz0": -2.03185, "ax": -5.1685, "ay": 11.22988, "az": -6.28637, "tof": 0.3896, "px": -0.12228, "pz": 0.61645, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 96.9, "desc": "swinging_strike", "events": "strikeout", "ab": 28, "pn": 6, "inn": 4, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Abreu", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.52121, "y0": 16.36471, "z0": 1.85318, "vx0": 0.53349, "vy0": -43.28152, "vz0": -2.50838, "ax": -1.5642, "ay": 10.79298, "az": -3.32565, "tof": 0.3868, "px": -0.41741, "pz": 0.65666, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 97.7, "desc": "ball", "events": "", "ab": 29, "pn": 1, "inn": 4, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Abreu", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.39319, "y0": 16.32204, "z0": 1.88671, "vx0": 1.20327, "vy0": -43.00641, "vz0": -1.52223, "ax": -0.95106, "ay": 10.38425, "az": -4.27829, "tof": 0.3876, "px": 0.01389, "pz": 1.00728, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 97.0, "desc": "foul", "events": "", "ab": 29, "pn": 2, "inn": 4, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Abreu", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.51816, "y0": 16.34947, "z0": 1.88062, "vx0": 0.73643, "vy0": -41.57747, "vz0": -1.75205, "ax": 0.47474, "ay": 9.99582, "az": -7.10609, "tof": 0.4023, "px": -0.18459, "pz": 0.66352, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 93.8, "desc": "foul_tip", "events": "", "ab": 29, "pn": 3, "inn": 4, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Abreu", "p": "R", "s": "L", "color": "#FF6600", "x0": -0.47854, "y0": 16.39824, "z0": 1.86538, "vx0": 1.62401, "vy0": -42.31796, "vz0": -0.47244, "ax": -2.83334, "ay": 10.10176, "az": -6.47496, "tof": 0.396, "px": -0.02636, "pz": 1.23119, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 95.4, "desc": "ball", "events": "", "ab": 29, "pn": 4, "inn": 4, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Abreu", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.49682, "y0": 16.30375, "z0": 1.88062, "vx0": 1.08855, "vy0": -41.42119, "vz0": -2.35179, "ax": -0.13465, "ay": 9.43139, "az": -6.8382, "tof": 0.4015, "px": -0.06592, "pz": 0.44016, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 93.5, "desc": "hit_into_play", "events": "field_out", "ab": 29, "pn": 5, "inn": 4, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Story", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.54864, "y0": 16.35557, "z0": 1.84099, "vx0": 1.5362, "vy0": -41.20851, "vz0": -1.81566, "ax": 0.85271, "ay": 9.90479, "az": -7.26501, "tof": 0.4063, "px": 0.14095, "pz": 0.57172, "sz_top": 0.98814, "sz_bot": 0.49869, "speed": 93.0, "desc": "called_strike", "events": "", "ab": 30, "pn": 1, "inn": 4, "topbot": "Bot"},
-{"name": "Slider", "batter": "Story", "p": "R", "s": "R", "color": "#00CFFF", "x0": -0.5395, "y0": 16.3068, "z0": 1.85623, "vx0": 1.33097, "vy0": -39.59164, "vz0": -1.51889, "ax": 1.43611, "ay": 8.94259, "az": -8.9484, "tof": 0.421, "px": 0.13644, "pz": 0.51022, "sz_top": 0.98814, "sz_bot": 0.49869, "speed": 89.3, "desc": "hit_into_play", "events": "field_out", "ab": 30, "pn": 2, "inn": 4, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Chisholm Jr.", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.85039, "y0": 16.16659, "z0": 1.62458, "vx0": -1.96351, "vy0": -41.96676, "vz0": -1.63396, "ax": 3.26695, "ay": 10.93731, "az": -5.19213, "tof": 0.3953, "px": 0.29931, "pz": 0.60709, "sz_top": 0.96193, "sz_bot": 0.48546, "speed": 94.8, "desc": "hit_into_play", "events": "home_run", "ab": 31, "pn": 1, "inn": 5, "topbot": "Top"},
-{"name": "Sinker", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF6600", "x0": 0.79248, "y0": 16.07515, "z0": 1.61544, "vx0": -4.19548, "vy0": -42.04342, "vz0": -0.65703, "ax": 7.13443, "ay": 10.85066, "az": -7.01637, "tof": 0.3919, "px": -0.36416, "pz": 0.86232, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 95.3, "desc": "ball", "events": "", "ab": 32, "pn": 1, "inn": 5, "topbot": "Top"},
-{"name": "Cutter", "batter": "Caballero", "p": "L", "s": "R", "color": "#FFD700", "x0": 0.78334, "y0": 16.1544, "z0": 1.62763, "vx0": -2.74203, "vy0": -40.81039, "vz0": -1.40876, "ax": 0.46872, "ay": 8.9923, "az": -5.57726, "tof": 0.4032, "px": -0.29852, "pz": 0.64306, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 92.2, "desc": "foul", "events": "", "ab": 32, "pn": 2, "inn": 5, "topbot": "Top"},
-{"name": "Curveball", "batter": "Caballero", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.78943, "y0": 16.24584, "z0": 1.71298, "vx0": -1.40351, "vy0": -36.85893, "vz0": -0.44683, "ax": -1.41802, "ay": 6.88467, "az": -11.03618, "tof": 0.4478, "px": 0.02971, "pz": 0.5206, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 83.0, "desc": "called_strike", "events": "", "ab": 32, "pn": 3, "inn": 5, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.79858, "y0": 16.09039, "z0": 1.66726, "vx0": -2.69853, "vy0": -42.59207, "vz0": -1.18761, "ax": 2.81306, "ay": 9.55124, "az": -4.24712, "tof": 0.3842, "px": -0.05906, "pz": 0.91985, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 96.1, "desc": "swinging_strike", "events": "strikeout", "ab": 32, "pn": 4, "inn": 5, "topbot": "Top"},
-{"name": "Cutter", "batter": "Wells", "p": "L", "s": "L", "color": "#FFD700", "x0": 0.81382, "y0": 16.18183, "z0": 1.63068, "vx0": -1.71402, "vy0": -40.1897, "vz0": -1.16045, "ax": -0.79857, "ay": 7.65275, "az": -7.35575, "tof": 0.4077, "px": 0.04724, "pz": 0.60177, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 90.5, "desc": "foul", "events": "", "ab": 33, "pn": 1, "inn": 5, "topbot": "Top"},
-{"name": "Curveball", "batter": "Wells", "p": "L", "s": "L", "color": "#7B68EE", "x0": 0.70714, "y0": 16.21536, "z0": 1.71907, "vx0": -1.32925, "vy0": -36.07941, "vz0": -0.48356, "ax": -1.63866, "ay": 6.71972, "az": -11.04008, "tof": 0.4569, "px": -0.05933, "pz": 0.46117, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 81.3, "desc": "swinging_strike", "events": "", "ab": 33, "pn": 2, "inn": 5, "topbot": "Top"},
-{"name": "Curveball", "batter": "Wells", "p": "L", "s": "L", "color": "#7B68EE", "x0": 0.70104, "y0": 16.24279, "z0": 1.73431, "vx0": -0.46703, "vy0": -36.07475, "vz0": 0.74229, "ax": -2.0361, "ay": 6.83604, "az": -11.56072, "tof": 0.4582, "px": 0.29541, "pz": 0.99262, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 81.3, "desc": "foul", "events": "", "ab": 33, "pn": 3, "inn": 5, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Wells", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.762, "y0": 16.19402, "z0": 1.66726, "vx0": -2.96546, "vy0": -42.84145, "vz0": -1.3785, "ax": 1.99768, "ay": 9.96254, "az": -4.59196, "tof": 0.3852, "px": -0.25662, "pz": 0.82593, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 96.8, "desc": "ball", "events": "", "ab": 33, "pn": 4, "inn": 5, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Wells", "p": "L", "s": "L", "color": "#FF4444", "x0": 0.77114, "y0": 16.19098, "z0": 1.68859, "vx0": -2.4619, "vy0": -42.75228, "vz0": -1.70863, "ax": 2.31369, "ay": 10.27978, "az": -3.24968, "tof": 0.3866, "px": -0.03201, "pz": 0.8044, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 96.5, "desc": "hit_into_play", "events": "field_out", "ab": 33, "pn": 5, "inn": 5, "topbot": "Top"},
-{"name": "Sinker", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF6600", "x0": 0.76505, "y0": 16.13916, "z0": 1.62763, "vx0": -3.30951, "vy0": -41.83312, "vz0": -1.73293, "ax": 6.32785, "ay": 9.52493, "az": -6.6458, "tof": 0.3931, "px": -0.10347, "pz": 0.47367, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 94.6, "desc": "called_strike", "events": "", "ab": 34, "pn": 1, "inn": 5, "topbot": "Top"},
-{"name": "Curveball", "batter": "Rosario", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.74371, "y0": 16.20317, "z0": 1.71907, "vx0": -1.11698, "vy0": -36.23186, "vz0": -0.82557, "ax": -2.25902, "ay": 6.68001, "az": -12.23234, "tof": 0.4543, "px": 0.02149, "pz": 0.20289, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 81.6, "desc": "swinging_strike", "events": "", "ab": 34, "pn": 2, "inn": 5, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.79858, "y0": 16.16354, "z0": 1.66726, "vx0": -3.23843, "vy0": -43.04163, "vz0": -2.34412, "ax": 3.00952, "ay": 9.7169, "az": -3.9124, "tof": 0.382, "px": -0.25205, "pz": 0.50435, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 97.3, "desc": "foul", "events": "", "ab": 34, "pn": 3, "inn": 5, "topbot": "Top"},
-{"name": "Curveball", "batter": "Rosario", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.75286, "y0": 16.27937, "z0": 1.72517, "vx0": 0.15524, "vy0": -35.93504, "vz0": 0.41695, "ax": -1.86319, "ay": 6.64976, "az": -12.14011, "tof": 0.4606, "px": 0.64831, "pz": 0.77226, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 80.9, "desc": "ball", "events": "", "ab": 34, "pn": 4, "inn": 5, "topbot": "Top"},
-{"name": "Changeup", "batter": "Rosario", "p": "L", "s": "R", "color": "#32CD32", "x0": 0.79858, "y0": 16.2367, "z0": 1.60934, "vx0": -2.91971, "vy0": -39.78987, "vz0": -1.80709, "ax": 3.23105, "ay": 9.03475, "az": -9.18263, "tof": 0.4169, "px": -0.17699, "pz": 0.13421, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 90.0, "desc": "ball", "events": "", "ab": 34, "pn": 5, "inn": 5, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.80772, "y0": 16.21231, "z0": 1.63982, "vx0": -2.09782, "vy0": -42.02989, "vz0": -0.34071, "ax": 2.54632, "ay": 10.33646, "az": -5.15393, "tof": 0.3946, "px": 0.15109, "pz": 1.14457, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 94.8, "desc": "ball", "events": "", "ab": 34, "pn": 6, "inn": 5, "topbot": "Top"},
-{"name": "Sinker", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF6600", "x0": 0.81686, "y0": 16.12697, "z0": 1.6063, "vx0": -2.95906, "vy0": -41.38006, "vz0": -0.5308, "ax": 5.6064, "ay": 9.12854, "az": -7.75677, "tof": 0.3966, "px": 0.03219, "pz": 0.83726, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 93.4, "desc": "foul", "events": "", "ab": 34, "pn": 7, "inn": 5, "topbot": "Top"},
-{"name": "Cutter", "batter": "Rosario", "p": "L", "s": "R", "color": "#FFD700", "x0": 0.82296, "y0": 16.1544, "z0": 1.64592, "vx0": -1.53071, "vy0": -39.39894, "vz0": -0.46439, "ax": -0.49941, "ay": 8.81462, "az": -7.86808, "tof": 0.4187, "px": 0.13604, "pz": 0.82635, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 88.8, "desc": "foul", "events": "", "ab": 34, "pn": 8, "inn": 5, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rosario", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.79553, "y0": 16.12392, "z0": 1.63373, "vx0": -3.33297, "vy0": -42.05975, "vz0": -1.29748, "ax": 3.0565, "ay": 10.12339, "az": -4.62983, "tof": 0.3915, "px": -0.30688, "pz": 0.79978, "sz_top": 0.99697, "sz_bot": 0.50315, "speed": 95.1, "desc": "hit_into_play", "events": "field_out", "ab": 34, "pn": 9, "inn": 5, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Mayer", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.48158, "y0": 16.34033, "z0": 1.88366, "vx0": 1.60078, "vy0": -42.44207, "vz0": -1.67587, "ax": -3.00961, "ay": 11.41537, "az": -3.43703, "tof": 0.3959, "px": -0.05255, "pz": 0.97968, "sz_top": 1.01864, "sz_bot": 0.51408, "speed": 95.8, "desc": "called_strike", "events": "", "ab": 35, "pn": 1, "inn": 5, "topbot": "Bot"},
-{"name": "Curveball", "batter": "Mayer", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.43586, "y0": 16.39519, "z0": 1.91719, "vx0": -0.01933, "vy0": -36.49893, "vz0": -0.37943, "ax": 2.38063, "ay": 7.89303, "az": -12.86221, "tof": 0.4603, "px": -0.22308, "pz": 0.54912, "sz_top": 1.01864, "sz_bot": 0.51408, "speed": 82.3, "desc": "foul", "events": "", "ab": 35, "pn": 2, "inn": 5, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Mayer", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.47549, "y0": 16.37081, "z0": 1.87452, "vx0": 1.6103, "vy0": -42.55141, "vz0": -0.28783, "ax": -0.89099, "ay": 10.0705, "az": -4.35686, "tof": 0.3928, "px": 0.10209, "pz": 1.46498, "sz_top": 1.01864, "sz_bot": 0.51408, "speed": 95.9, "desc": "ball", "events": "", "ab": 35, "pn": 3, "inn": 5, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Mayer", "p": "R", "s": "L", "color": "#FF6600", "x0": -0.43586, "y0": 16.33728, "z0": 1.86538, "vx0": 1.86938, "vy0": -42.65829, "vz0": -1.28069, "ax": -3.67785, "ay": 10.64175, "az": -4.73492, "tof": 0.392, "px": 0.05331, "pz": 1.03818, "sz_top": 1.01864, "sz_bot": 0.51408, "speed": 96.3, "desc": "foul", "events": "", "ab": 35, "pn": 4, "inn": 5, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Mayer", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.51206, "y0": 16.3007, "z0": 1.88366, "vx0": 1.77277, "vy0": -41.2964, "vz0": -1.18146, "ax": 1.54833, "ay": 8.99471, "az": -6.47724, "tof": 0.4019, "px": 0.31728, "pz": 0.94073, "sz_top": 1.01864, "sz_bot": 0.51408, "speed": 93.1, "desc": "hit_into_play", "events": "field_out", "ab": 35, "pn": 5, "inn": 5, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Durbin", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.51511, "y0": 16.34033, "z0": 1.85014, "vx0": 1.56718, "vy0": -42.95221, "vz0": -1.83866, "ax": -4.94074, "ay": 10.67286, "az": -5.50182, "tof": 0.3892, "px": -0.23231, "pz": 0.76211, "sz_top": 0.89826, "sz_bot": 0.45333, "speed": 96.9, "desc": "called_strike", "events": "", "ab": 36, "pn": 1, "inn": 5, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Durbin", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.51816, "y0": 16.31899, "z0": 1.85014, "vx0": 1.22665, "vy0": -40.76326, "vz0": -1.48783, "ax": 2.80522, "ay": 9.05691, "az": -7.77139, "tof": 0.4083, "px": 0.19273, "pz": 0.66302, "sz_top": 0.89826, "sz_bot": 0.45333, "speed": 91.9, "desc": "hit_into_play", "events": "field_out", "ab": 36, "pn": 2, "inn": 5, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.49073, "y0": 16.32204, "z0": 1.86538, "vx0": 2.51834, "vy0": -41.95859, "vz0": -0.97509, "ax": -4.39961, "ay": 9.88568, "az": -6.12098, "tof": 0.3973, "px": 0.20988, "pz": 1.04777, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 94.7, "desc": "ball", "events": "", "ab": 37, "pn": 1, "inn": 5, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.53035, "y0": 16.32509, "z0": 1.88671, "vx0": 0.65726, "vy0": -40.15132, "vz0": -0.84994, "ax": 2.60467, "ay": 8.12257, "az": -7.13871, "tof": 0.4131, "px": -0.05951, "pz": 0.99283, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 90.4, "desc": "called_strike", "events": "", "ab": 37, "pn": 2, "inn": 5, "topbot": "Bot"},
-{"name": "Curveball", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#7B68EE", "x0": -0.39929, "y0": 16.31594, "z0": 1.9111, "vx0": 0.38577, "vy0": -36.57187, "vz0": 0.03234, "ax": 1.18414, "ay": 6.98316, "az": -13.09166, "tof": 0.454, "px": -0.11385, "pz": 0.72964, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 82.4, "desc": "foul", "events": "", "ab": 37, "pn": 3, "inn": 5, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.49682, "y0": 16.36166, "z0": 1.85623, "vx0": 1.79539, "vy0": -42.82372, "vz0": -1.55869, "ax": -3.86152, "ay": 10.31035, "az": -5.03808, "tof": 0.3903, "px": -0.05016, "pz": 0.90611, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 96.6, "desc": "hit_into_play", "events": "home_run", "ab": 37, "pn": 4, "inn": 5, "topbot": "Bot"},
-{"name": "Curveball", "batter": "Duran", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.41758, "y0": 16.30985, "z0": 1.88366, "vx0": 1.06486, "vy0": -36.93785, "vz0": -0.82103, "ax": 1.54816, "ay": 8.25569, "az": -13.22194, "tof": 0.4528, "px": 0.20965, "pz": 0.30874, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 83.3, "desc": "swinging_strike", "events": "", "ab": 38, "pn": 1, "inn": 5, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Duran", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.49682, "y0": 16.34947, "z0": 1.84709, "vx0": 1.04022, "vy0": -41.61874, "vz0": -1.51621, "ax": 1.96684, "ay": 8.79109, "az": -7.16414, "tof": 0.3993, "px": 0.05908, "pz": 0.7331, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 93.8, "desc": "hit_into_play", "events": "field_out", "ab": 38, "pn": 2, "inn": 5, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Judge", "p": "L", "s": "R", "color": "#FF6600", "x0": 0.83515, "y0": 16.11782, "z0": 1.63678, "vx0": -3.27151, "vy0": -41.89133, "vz0": -2.58333, "ax": 5.7087, "ay": 9.00501, "az": -5.58771, "tof": 0.3909, "px": -0.05931, "pz": 0.22994, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 94.8, "desc": "ball", "events": "", "ab": 39, "pn": 1, "inn": 6, "topbot": "Top"},
-{"name": "Curveball", "batter": "Judge", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.78334, "y0": 16.22755, "z0": 1.72212, "vx0": -0.88081, "vy0": -36.07999, "vz0": -0.29873, "ax": -1.35241, "ay": 6.6858, "az": -10.78962, "tof": 0.4572, "px": 0.25184, "pz": 0.57268, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 81.3, "desc": "swinging_strike", "events": "", "ab": 39, "pn": 2, "inn": 6, "topbot": "Top"},
-{"name": "Curveball", "batter": "Judge", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.78029, "y0": 16.28851, "z0": 1.73736, "vx0": -0.7581, "vy0": -35.95759, "vz0": -0.02759, "ax": -1.79161, "ay": 6.67617, "az": -11.28458, "tof": 0.4607, "px": 0.25757, "pz": 0.65823, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 81.0, "desc": "called_strike", "events": "", "ab": 39, "pn": 3, "inn": 6, "topbot": "Top"},
-{"name": "Changeup", "batter": "Judge", "p": "L", "s": "R", "color": "#32CD32", "x0": 0.79858, "y0": 16.14221, "z0": 1.59715, "vx0": -2.20828, "vy0": -39.49947, "vz0": -1.50548, "ax": 3.42109, "ay": 7.8488, "az": -9.23957, "tof": 0.4148, "px": 0.14008, "pz": 0.24555, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 89.1, "desc": "ball", "events": "", "ab": 39, "pn": 4, "inn": 6, "topbot": "Top"},
-{"name": "Curveball", "batter": "Judge", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.78943, "y0": 16.27327, "z0": 1.72517, "vx0": -0.50714, "vy0": -36.35798, "vz0": 0.25479, "ax": -1.66099, "ay": 7.09326, "az": -11.22509, "tof": 0.456, "px": 0.4025, "pz": 0.80244, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 81.9, "desc": "ball", "events": "", "ab": 39, "pn": 5, "inn": 6, "topbot": "Top"},
-{"name": "Cutter", "batter": "Judge", "p": "L", "s": "R", "color": "#FFD700", "x0": 0.78334, "y0": 16.19098, "z0": 1.63982, "vx0": -2.95783, "vy0": -39.90531, "vz0": -1.2855, "ax": -0.11807, "ay": 8.32541, "az": -6.62885, "tof": 0.4127, "px": -0.45796, "pz": 0.59664, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 90.1, "desc": "swinging_strike", "events": "strikeout", "ab": 39, "pn": 6, "inn": 6, "topbot": "Top"},
-{"name": "Cutter", "batter": "Rice", "p": "L", "s": "L", "color": "#FFD700", "x0": 0.77114, "y0": 16.20012, "z0": 1.69164, "vx0": -2.71841, "vy0": -39.71985, "vz0": -1.66516, "ax": -0.52117, "ay": 8.02751, "az": -8.56352, "tof": 0.4143, "px": -0.40692, "pz": 0.33276, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 89.7, "desc": "ball", "events": "", "ab": 40, "pn": 1, "inn": 6, "topbot": "Top"},
-{"name": "Sinker", "batter": "Rice", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.81382, "y0": 16.15745, "z0": 1.65811, "vx0": -2.86751, "vy0": -42.36863, "vz0": 0.15729, "ax": 6.10945, "ay": 10.1616, "az": -6.6411, "tof": 0.3893, "px": 0.10851, "pz": 1.2629, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 95.7, "desc": "ball", "events": "", "ab": 40, "pn": 2, "inn": 6, "topbot": "Top"},
-{"name": "Sinker", "batter": "Rice", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.79553, "y0": 16.11173, "z0": 1.62154, "vx0": -2.90649, "vy0": -42.1869, "vz0": -0.82722, "ax": 6.12664, "ay": 9.63529, "az": -6.03006, "tof": 0.389, "px": 0.07644, "pz": 0.88253, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 95.3, "desc": "hit_into_play", "events": "field_out", "ab": 40, "pn": 3, "inn": 6, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.79248, "y0": 16.09039, "z0": 1.65202, "vx0": -3.03404, "vy0": -43.13065, "vz0": -1.68197, "ax": 3.31587, "ay": 9.05832, "az": -4.51571, "tof": 0.3781, "px": -0.15, "pz": 0.71563, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 97.4, "desc": "foul", "events": "", "ab": 41, "pn": 1, "inn": 6, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.70104, "y0": 16.14221, "z0": 1.67335, "vx0": -3.78991, "vy0": -42.58465, "vz0": -1.74962, "ax": 3.03909, "ay": 10.25503, "az": -3.49417, "tof": 0.3869, "px": -0.57318, "pz": 0.75381, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 96.4, "desc": "ball", "events": "", "ab": 41, "pn": 2, "inn": 6, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.80772, "y0": 16.16354, "z0": 1.65506, "vx0": -2.96032, "vy0": -42.29029, "vz0": -2.99615, "ax": 3.76918, "ay": 9.60242, "az": -3.78548, "tof": 0.3892, "px": -0.09524, "pz": 0.21802, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 95.7, "desc": "ball", "events": "", "ab": 41, "pn": 3, "inn": 6, "topbot": "Top"},
-{"name": "Curveball", "batter": "Stanton", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.74676, "y0": 16.24889, "z0": 1.73431, "vx0": -1.5895, "vy0": -35.99018, "vz0": -0.47628, "ax": -1.03679, "ay": 7.4462, "az": -11.21375, "tof": 0.4615, "px": -0.09145, "pz": 0.44475, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 81.2, "desc": "swinging_strike", "events": "", "ab": 41, "pn": 4, "inn": 6, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.762, "y0": 16.05382, "z0": 1.67945, "vx0": -4.06019, "vy0": -43.0417, "vz0": -1.27874, "ax": 2.74999, "ay": 10.89288, "az": -3.46732, "tof": 0.3814, "px": -0.61614, "pz": 0.95497, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 97.5, "desc": "ball", "events": "", "ab": 41, "pn": 5, "inn": 6, "topbot": "Top"},
-{"name": "Curveball", "batter": "Stanton", "p": "L", "s": "R", "color": "#7B68EE", "x0": 0.72847, "y0": 16.16659, "z0": 1.70688, "vx0": -2.08346, "vy0": -35.97577, "vz0": -1.55874, "ax": -1.01794, "ay": 7.38161, "az": -10.87981, "tof": 0.459, "px": -0.33155, "pz": -0.05164, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 81.2, "desc": "swinging_strike_blocked", "events": "strikeout", "ab": 41, "pn": 6, "inn": 6, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.52426, "y0": 16.39519, "z0": 1.86233, "vx0": 1.69119, "vy0": -42.39618, "vz0": -1.82625, "ax": -1.61387, "ay": 10.55426, "az": -3.15725, "tof": 0.3961, "px": 0.03999, "pz": 0.91828, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 95.7, "desc": "swinging_strike", "events": "", "ab": 42, "pn": 1, "inn": 6, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.48158, "y0": 16.34338, "z0": 1.86233, "vx0": 2.20504, "vy0": -42.26331, "vz0": -2.28106, "ax": -1.41038, "ay": 10.49423, "az": -3.14154, "tof": 0.3959, "px": 0.30048, "pz": 0.73561, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 95.5, "desc": "ball", "events": "", "ab": 42, "pn": 2, "inn": 6, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.49378, "y0": 16.33728, "z0": 1.85318, "vx0": 0.89204, "vy0": -42.30886, "vz0": -2.44103, "ax": -1.96399, "ay": 10.74382, "az": -3.0263, "tof": 0.3958, "px": -0.27437, "pz": 0.66962, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 95.5, "desc": "hit_into_play", "events": "field_out", "ab": 42, "pn": 3, "inn": 6, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.43282, "y0": 16.35557, "z0": 1.92329, "vx0": 0.56357, "vy0": -42.10255, "vz0": -0.42491, "ax": -1.0239, "ay": 10.18444, "az": -4.11883, "tof": 0.3973, "px": -0.27843, "pz": 1.46787, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 94.9, "desc": "ball", "events": "", "ab": 43, "pn": 1, "inn": 6, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.43891, "y0": 16.33118, "z0": 1.90195, "vx0": 1.52845, "vy0": -42.59272, "vz0": -2.34114, "ax": -1.84927, "ay": 9.80039, "az": -3.00603, "tof": 0.3909, "px": 0.03774, "pz": 0.77651, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 96.1, "desc": "hit_into_play", "events": "field_out", "ab": 43, "pn": 2, "inn": 6, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Contreras", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.4633, "y0": 16.3129, "z0": 1.87147, "vx0": 1.5415, "vy0": -42.85664, "vz0": -2.47165, "ax": -3.21998, "ay": 10.47454, "az": -3.23764, "tof": 0.3891, "px": -0.07417, "pz": 0.68591, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 96.8, "desc": "hit_into_play", "events": "field_out", "ab": 44, "pn": 1, "inn": 6, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Grichuk", "p": "L", "s": "R", "color": "#FF6600", "x0": -0.12802, "y0": 16.62379, "z0": 1.86233, "vx0": 0.27688, "vy0": -39.74982, "vz0": -0.33349, "ax": 3.31157, "ay": 8.54356, "az": -5.81198, "tof": 0.4269, "px": 0.24638, "pz": 1.26922, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 89.5, "desc": "ball", "events": "", "ab": 45, "pn": 1, "inn": 7, "topbot": "Top"},
-{"name": "Cutter", "batter": "Grichuk", "p": "L", "s": "R", "color": "#FFD700", "x0": -0.0823, "y0": 16.59331, "z0": 1.84404, "vx0": 0.26909, "vy0": -38.15596, "vz0": -1.36308, "ax": -0.67983, "ay": 7.09686, "az": -7.63551, "tof": 0.4417, "px": -0.0182, "pz": 0.60291, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 85.9, "desc": "called_strike", "events": "", "ab": 45, "pn": 2, "inn": 7, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Grichuk", "p": "L", "s": "R", "color": "#FF88CC", "x0": -0.10058, "y0": 16.60246, "z0": 1.88062, "vx0": 0.84864, "vy0": -36.32341, "vz0": -0.83301, "ax": -3.11513, "ay": 7.70766, "az": -9.16629, "tof": 0.4685, "px": 0.00861, "pz": 0.63254, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 81.9, "desc": "called_strike", "events": "", "ab": 45, "pn": 3, "inn": 7, "topbot": "Top"},
-{"name": "Knuckle Curve", "batter": "Grichuk", "p": "L", "s": "R", "color": "#7B68EE", "x0": -0.19202, "y0": 16.58417, "z0": 1.87757, "vx0": 0.51056, "vy0": -34.59915, "vz0": -0.33409, "ax": -1.10937, "ay": 7.42052, "az": -13.9781, "tof": 0.4929, "px": -0.05298, "pz": 0.26573, "sz_top": 0.97798, "sz_bot": 0.49356, "speed": 78.0, "desc": "swinging_strike", "events": "strikeout", "ab": 45, "pn": 4, "inn": 7, "topbot": "Top"},
-{"name": "Cutter", "batter": "Grisham", "p": "L", "s": "L", "color": "#FFD700", "x0": 0.01524, "y0": 16.64208, "z0": 1.85318, "vx0": -0.58334, "vy0": -38.43851, "vz0": -1.28349, "ax": -0.06699, "ay": 7.82415, "az": -7.61926, "tof": 0.4416, "px": -0.24877, "pz": 0.65384, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 86.6, "desc": "hit_into_play", "events": "single", "ab": 46, "pn": 1, "inn": 7, "topbot": "Top"},
-{"name": "Cutter", "batter": "Chisholm Jr.", "p": "L", "s": "L", "color": "#FFD700", "x0": -0.03048, "y0": 16.66951, "z0": 1.8227, "vx0": -0.29708, "vy0": -38.1309, "vz0": -1.50814, "ax": -0.80328, "ay": 7.80493, "az": -7.26846, "tof": 0.4462, "px": -0.23076, "pz": 0.53677, "sz_top": 0.96193, "sz_bot": 0.48546, "speed": 85.9, "desc": "called_strike", "events": "", "ab": 47, "pn": 1, "inn": 7, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Chisholm Jr.", "p": "L", "s": "L", "color": "#FF88CC", "x0": -0.11278, "y0": 16.62379, "z0": 1.84099, "vx0": 0.95572, "vy0": -36.79041, "vz0": -1.58228, "ax": -2.55481, "ay": 7.48527, "az": -8.50614, "tof": 0.4618, "px": 0.09888, "pz": 0.33625, "sz_top": 0.96193, "sz_bot": 0.48546, "speed": 83.0, "desc": "ball", "events": "", "ab": 47, "pn": 2, "inn": 7, "topbot": "Top"},
-{"name": "Sinker", "batter": "Chisholm Jr.", "p": "L", "s": "L", "color": "#FF6600", "x0": -0.06096, "y0": 16.55369, "z0": 1.85928, "vx0": -0.00436, "vy0": -40.31824, "vz0": -2.02773, "ax": 3.18729, "ay": 9.63128, "az": -4.93603, "tof": 0.421, "px": 0.17945, "pz": 0.62624, "sz_top": 0.96193, "sz_bot": 0.48546, "speed": 91.0, "desc": "hit_into_play", "events": "single", "ab": 47, "pn": 3, "inn": 7, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF88CC", "x0": -0.08839, "y0": 16.6939, "z0": 1.87452, "vx0": 0.14303, "vy0": -36.15175, "vz0": -1.86945, "ax": -2.74953, "ay": 7.28655, "az": -9.57288, "tof": 0.4723, "px": -0.277, "pz": 0.09193, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 81.5, "desc": "swinging_strike_blocked", "events": "", "ab": 48, "pn": 1, "inn": 7, "topbot": "Top"},
-{"name": "Knuckle Curve", "batter": "Caballero", "p": "L", "s": "R", "color": "#7B68EE", "x0": -0.16764, "y0": 16.59941, "z0": 1.88366, "vx0": 0.58255, "vy0": -35.3674, "vz0": -1.38822, "ax": -1.02158, "ay": 9.35573, "az": -14.35127, "tof": 0.4887, "px": 0.01314, "pz": -0.25005, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 79.9, "desc": "blocked_ball", "events": "", "ab": 48, "pn": 2, "inn": 7, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF88CC", "x0": -0.13411, "y0": 16.63294, "z0": 1.87147, "vx0": 0.38226, "vy0": -36.20016, "vz0": -0.69165, "ax": -2.24987, "ay": 7.38949, "az": -10.28183, "tof": 0.4701, "px": -0.16492, "pz": 0.58166, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 81.6, "desc": "foul_bunt", "events": "", "ab": 48, "pn": 3, "inn": 7, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF88CC", "x0": -0.12497, "y0": 16.59941, "z0": 1.88671, "vx0": 0.42965, "vy0": -36.58859, "vz0": -0.61306, "ax": -2.76627, "ay": 6.98972, "az": -8.89601, "tof": 0.4623, "px": -0.17745, "pz": 0.79228, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 82.4, "desc": "hit_into_play", "events": "single", "ab": 48, "pn": 4, "inn": 7, "topbot": "Top"},
-{"name": "Cutter", "batter": "Wells", "p": "L", "s": "L", "color": "#FFD700", "x0": -0.07315, "y0": 16.58112, "z0": 1.8288, "vx0": -0.11758, "vy0": -38.22496, "vz0": -1.94556, "ax": 0.02878, "ay": 8.73046, "az": -7.33042, "tof": 0.4451, "px": -0.12277, "pz": 0.33868, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 86.2, "desc": "ball", "events": "", "ab": 49, "pn": 1, "inn": 7, "topbot": "Top"},
-{"name": "Cutter", "batter": "Wells", "p": "L", "s": "L", "color": "#FFD700", "x0": -0.02134, "y0": 16.65122, "z0": 1.83185, "vx0": -0.70297, "vy0": -38.19796, "vz0": -1.67831, "ax": 0.39297, "ay": 8.56961, "az": -7.19634, "tof": 0.447, "px": -0.30312, "pz": 0.47028, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 86.2, "desc": "ball", "events": "", "ab": 49, "pn": 2, "inn": 7, "topbot": "Top"},
-{"name": "Cutter", "batter": "Wells", "p": "L", "s": "L", "color": "#FFD700", "x0": 0.00914, "y0": 16.68475, "z0": 1.85623, "vx0": -0.82088, "vy0": -37.96663, "vz0": -0.97399, "ax": 0.64327, "ay": 8.4354, "az": -7.66698, "tof": 0.4506, "px": -0.30803, "pz": 0.76229, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 85.6, "desc": "ball", "events": "", "ab": 49, "pn": 3, "inn": 7, "topbot": "Top"},
-{"name": "Sinker", "batter": "Wells", "p": "L", "s": "L", "color": "#FF6600", "x0": -0.09449, "y0": 16.55064, "z0": 1.84709, "vx0": -0.71749, "vy0": -39.80005, "vz0": -1.01339, "ax": 4.33659, "ay": 10.18587, "az": -5.69664, "tof": 0.4285, "px": -0.0624, "pz": 0.96414, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 89.8, "desc": "called_strike", "events": "", "ab": 49, "pn": 4, "inn": 7, "topbot": "Top"},
-{"name": "Cutter", "batter": "Wells", "p": "L", "s": "L", "color": "#FFD700", "x0": -0.0061, "y0": 16.68475, "z0": 1.83185, "vx0": 0.54233, "vy0": -37.98358, "vz0": -0.95387, "ax": -0.39107, "ay": 8.0514, "az": -7.55968, "tof": 0.4493, "px": 0.20623, "pz": 0.76082, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 85.6, "desc": "foul", "events": "", "ab": 49, "pn": 5, "inn": 7, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Wells", "p": "L", "s": "L", "color": "#FF88CC", "x0": -0.06401, "y0": 16.72742, "z0": 1.88671, "vx0": 0.73187, "vy0": -36.09686, "vz0": -0.91249, "ax": -2.58857, "ay": 7.85881, "az": -8.98535, "tof": 0.4761, "px": 0.04088, "pz": 0.60107, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 81.4, "desc": "swinging_strike", "events": "strikeout", "ab": 49, "pn": 6, "inn": 7, "topbot": "Top"},
-{"name": "Sinker", "batter": "Bellinger", "p": "R", "s": "L", "color": "#FF6600", "x0": -1.05461, "y0": 16.70609, "z0": 1.55753, "vx0": 2.63615, "vy0": -41.90578, "vz0": 0.77085, "ax": -6.14569, "ay": 10.99927, "az": -11.14273, "tof": 0.4105, "px": -0.40179, "pz": 1.08876, "sz_top": 1.01944, "sz_bot": 0.51448, "speed": 94.7, "desc": "ball", "events": "", "ab": 50, "pn": 1, "inn": 7, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Bellinger", "p": "R", "s": "L", "color": "#FF88CC", "x0": -1.16129, "y0": 16.6177, "z0": 1.35026, "vx0": 2.97912, "vy0": -36.1695, "vz0": 0.046, "ax": 4.05516, "ay": 8.1116, "az": -7.97987, "tof": 0.4725, "px": 0.63822, "pz": 0.61528, "sz_top": 1.01944, "sz_bot": 0.51448, "speed": 81.8, "desc": "ball", "events": "", "ab": 50, "pn": 2, "inn": 7, "topbot": "Top"},
-{"name": "Sinker", "batter": "Bellinger", "p": "R", "s": "L", "color": "#FF6600", "x0": -1.04242, "y0": 16.62379, "z0": 1.54229, "vx0": 3.86225, "vy0": -41.95382, "vz0": -0.24722, "ax": -7.08223, "ay": 10.20987, "az": -9.11738, "tof": 0.406, "px": 0.03908, "pz": 0.80345, "sz_top": 1.01944, "sz_bot": 0.51448, "speed": 95.0, "desc": "called_strike", "events": "", "ab": 50, "pn": 3, "inn": 7, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Bellinger", "p": "R", "s": "L", "color": "#FF4444", "x0": -1.02718, "y0": 16.64818, "z0": 1.58801, "vx0": 3.03305, "vy0": -41.5905, "vz0": -0.6936, "ax": -4.09394, "ay": 10.14299, "az": -5.46239, "tof": 0.4104, "px": -0.06911, "pz": 0.91336, "sz_top": 1.01944, "sz_bot": 0.51448, "speed": 94.0, "desc": "hit_into_play", "events": "single", "ab": 50, "pn": 4, "inn": 7, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Judge", "p": "R", "s": "R", "color": "#FF4444", "x0": -1.02413, "y0": 16.63598, "z0": 1.62154, "vx0": 2.63203, "vy0": -41.75428, "vz0": -0.89839, "ax": -2.53675, "ay": 9.63632, "az": -4.53632, "tof": 0.4072, "px": -0.12588, "pz": 0.93585, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 94.3, "desc": "called_strike", "events": "", "ab": 51, "pn": 1, "inn": 7, "topbot": "Top"},
-{"name": "Sinker", "batter": "Judge", "p": "R", "s": "R", "color": "#FF6600", "x0": -0.9906, "y0": 16.65732, "z0": 1.51181, "vx0": 2.7767, "vy0": -41.81997, "vz0": 0.62653, "ax": -6.29765, "ay": 10.10953, "az": -10.02293, "tof": 0.4081, "px": -0.29341, "pz": 1.06325, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 94.5, "desc": "foul", "events": "", "ab": 51, "pn": 2, "inn": 7, "topbot": "Top"},
-{"name": "Sinker", "batter": "Judge", "p": "R", "s": "R", "color": "#FF6600", "x0": -1.0729, "y0": 16.6878, "z0": 1.53924, "vx0": 3.38295, "vy0": -41.58497, "vz0": -0.51812, "ax": -5.45565, "ay": 9.07481, "az": -7.1428, "tof": 0.4092, "px": -0.06633, "pz": 0.82356, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 94.0, "desc": "hit_into_play", "events": "single", "ab": 51, "pn": 3, "inn": 7, "topbot": "Top"},
-{"name": "Sinker", "batter": "Stanton", "p": "R", "s": "R", "color": "#FF6600", "x0": -1.05461, "y0": 16.66646, "z0": 1.55448, "vx0": 3.46934, "vy0": -41.69267, "vz0": -0.34137, "ax": -6.73427, "ay": 10.34949, "az": -9.39753, "tof": 0.4103, "px": -0.10104, "pz": 0.74675, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 94.3, "desc": "called_strike", "events": "", "ab": 53, "pn": 1, "inn": 7, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.97841, "y0": 16.67866, "z0": 1.62458, "vx0": 3.7943, "vy0": -42.08101, "vz0": -0.71986, "ax": -3.75078, "ay": 9.11102, "az": -4.8992, "tof": 0.4037, "px": 0.30621, "pz": 0.99455, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 95.2, "desc": "ball", "events": "", "ab": 53, "pn": 2, "inn": 7, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Stanton", "p": "R", "s": "R", "color": "#FF88CC", "x0": -1.15824, "y0": 16.66037, "z0": 1.3716, "vx0": 1.31147, "vy0": -36.24615, "vz0": 0.65707, "ax": 4.40215, "ay": 7.43238, "az": -7.95135, "tof": 0.4704, "px": -0.12596, "pz": 0.93877, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 81.7, "desc": "swinging_strike", "events": "", "ab": 53, "pn": 3, "inn": 7, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.95707, "y0": 16.64818, "z0": 1.63982, "vx0": 3.67127, "vy0": -41.53852, "vz0": -1.06387, "ax": -3.15042, "ay": 9.26736, "az": -5.72396, "tof": 0.4091, "px": 0.33023, "pz": 0.79643, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 93.9, "desc": "foul", "events": "", "ab": 53, "pn": 4, "inn": 7, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Stanton", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.9906, "y0": 16.63903, "z0": 1.5941, "vx0": 3.01822, "vy0": -41.67753, "vz0": -0.39288, "ax": -3.34283, "ay": 8.82616, "az": -5.56865, "tof": 0.4064, "px": 0.01, "pz": 1.04476, "sz_top": 1.04592, "sz_bot": 0.52785, "speed": 94.1, "desc": "swinging_strike", "events": "strikeout", "ab": 53, "pn": 5, "inn": 7, "topbot": "Top"},
-{"name": "Curveball", "batter": "Abreu", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.42062, "y0": 16.3769, "z0": 1.92329, "vx0": 1.15123, "vy0": -37.1397, "vz0": -0.74506, "ax": 0.78118, "ay": 7.4224, "az": -11.86754, "tof": 0.4495, "px": 0.16866, "pz": 0.53409, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 83.7, "desc": "foul", "events": "", "ab": 54, "pn": 1, "inn": 7, "topbot": "Bot"},
-{"name": "Slider", "batter": "Abreu", "p": "R", "s": "L", "color": "#00CFFF", "x0": -0.51511, "y0": 16.35252, "z0": 1.88976, "vx0": 0.98101, "vy0": -40.26876, "vz0": -0.99823, "ax": 1.48662, "ay": 8.84238, "az": -8.31891, "tof": 0.4142, "px": 0.00553, "pz": 0.8431, "sz_top": 0.95016, "sz_bot": 0.47952, "speed": 90.7, "desc": "hit_into_play", "events": "single", "ab": 54, "pn": 2, "inn": 7, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Story", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.48463, "y0": 16.36776, "z0": 1.87147, "vx0": 1.64943, "vy0": -42.28194, "vz0": -1.90681, "ax": -1.08919, "ay": 9.70828, "az": -4.62879, "tof": 0.3948, "px": 0.09805, "pz": 0.79708, "sz_top": 0.98814, "sz_bot": 0.49869, "speed": 95.4, "desc": "hit_into_play", "events": "grounded_into_double_play", "ab": 55, "pn": 1, "inn": 7, "topbot": "Bot"},
-{"name": "Curveball", "batter": "Mayer", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.43282, "y0": 16.30985, "z0": 1.91414, "vx0": 0.49936, "vy0": -36.60715, "vz0": -0.17108, "ax": 1.05262, "ay": 7.92578, "az": -12.31493, "tof": 0.4563, "px": -0.10699, "pz": 0.69956, "sz_top": 1.01864, "sz_bot": 0.51408, "speed": 82.5, "desc": "hit_into_play", "events": "field_out", "ab": 56, "pn": 1, "inn": 7, "topbot": "Bot"},
-{"name": "Sinker", "batter": "McMahon", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.5273, "y0": 16.36471, "z0": 1.74041, "vx0": -1.65028, "vy0": -40.98651, "vz0": -1.64911, "ax": 4.40699, "ay": 10.35816, "az": -6.25103, "tof": 0.41, "px": 0.17199, "pz": 0.59778, "sz_top": 1.01115, "sz_bot": 0.5103, "speed": 92.5, "desc": "hit_into_play", "events": "single", "ab": 57, "pn": 1, "inn": 8, "topbot": "Top"},
-{"name": "Cutter", "batter": "Grisham", "p": "L", "s": "L", "color": "#FFD700", "x0": 0.64008, "y0": 16.36471, "z0": 1.76174, "vx0": -1.39723, "vy0": -38.52888, "vz0": 0.27836, "ax": -0.14135, "ay": 8.53794, "az": -8.35849, "tof": 0.4344, "px": 0.01651, "pz": 1.18876, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 86.9, "desc": "ball", "events": "", "ab": 58, "pn": 1, "inn": 8, "topbot": "Top"},
-{"name": "Sinker", "batter": "Grisham", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.55169, "y0": 16.30985, "z0": 1.70993, "vx0": -2.52953, "vy0": -40.89919, "vz0": -1.03672, "ax": 5.89432, "ay": 10.05639, "az": -7.23279, "tof": 0.4088, "px": -0.05258, "pz": 0.74659, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 92.4, "desc": "called_strike", "events": "", "ab": 58, "pn": 2, "inn": 8, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Grisham", "p": "L", "s": "L", "color": "#FF88CC", "x0": 0.63398, "y0": 16.3769, "z0": 1.69164, "vx0": 0.24322, "vy0": -35.90614, "vz0": 0.28605, "ax": -2.82657, "ay": 8.07448, "az": -10.78717, "tof": 0.4688, "px": 0.47715, "pz": 0.78694, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 81.0, "desc": "ball", "events": "", "ab": 58, "pn": 3, "inn": 8, "topbot": "Top"},
-{"name": "Cutter", "batter": "Grisham", "p": "L", "s": "L", "color": "#FFD700", "x0": 0.56693, "y0": 16.32814, "z0": 1.7526, "vx0": -0.47686, "vy0": -38.95706, "vz0": -0.35426, "ax": -0.06509, "ay": 7.96305, "az": -8.20272, "tof": 0.4266, "px": 0.35678, "pz": 0.94018, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 87.7, "desc": "foul_tip", "events": "", "ab": 58, "pn": 4, "inn": 8, "topbot": "Top"},
-{"name": "Sinker", "batter": "Grisham", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.50597, "y0": 16.30985, "z0": 1.74041, "vx0": -2.46428, "vy0": -41.76032, "vz0": -1.21346, "ax": 5.7364, "ay": 10.9722, "az": -6.06816, "tof": 0.4014, "px": -0.08019, "pz": 0.81775, "sz_top": 0.95658, "sz_bot": 0.48276, "speed": 94.4, "desc": "called_strike", "events": "strikeout", "ab": 58, "pn": 5, "inn": 8, "topbot": "Top"},
-{"name": "Cutter", "batter": "Chisholm Jr.", "p": "L", "s": "L", "color": "#FFD700", "x0": 0.61265, "y0": 16.31594, "z0": 1.73126, "vx0": -1.72716, "vy0": -39.06915, "vz0": 0.16672, "ax": -0.5828, "ay": 8.60235, "az": -8.31196, "tof": 0.4266, "px": -0.17627, "pz": 1.13448, "sz_top": 0.96193, "sz_bot": 0.48546, "speed": 88.1, "desc": "ball", "events": "", "ab": 59, "pn": 1, "inn": 8, "topbot": "Top"},
-{"name": "Sinker", "batter": "Chisholm Jr.", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.56083, "y0": 16.29156, "z0": 1.69469, "vx0": -2.19821, "vy0": -41.01345, "vz0": -1.22834, "ax": 4.84779, "ay": 11.15585, "az": -6.81269, "tof": 0.4095, "px": 0.0158, "pz": 0.68091, "sz_top": 0.96193, "sz_bot": 0.48546, "speed": 92.7, "desc": "hit_into_play", "events": "force_out", "ab": 59, "pn": 2, "inn": 8, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.52426, "y0": 16.29156, "z0": 1.77698, "vx0": -0.9832, "vy0": -41.43019, "vz0": -1.30782, "ax": 1.28128, "ay": 10.073, "az": -4.58146, "tof": 0.4025, "px": 0.21853, "pz": 0.91771, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 93.4, "desc": "called_strike", "events": "", "ab": 60, "pn": 1, "inn": 8, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.46939, "y0": 16.30985, "z0": 1.78918, "vx0": 0.18331, "vy0": -41.19234, "vz0": -1.64293, "ax": 0.67146, "ay": 9.99905, "az": -4.92934, "tof": 0.4054, "px": 0.59257, "pz": 0.758, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 92.9, "desc": "ball", "events": "", "ab": 60, "pn": 2, "inn": 8, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.47549, "y0": 16.27632, "z0": 1.76784, "vx0": -0.47593, "vy0": -41.26446, "vz0": -1.3452, "ax": 1.05485, "ay": 10.0573, "az": -4.54739, "tof": 0.4038, "px": 0.35942, "pz": 0.89148, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 93.0, "desc": "ball", "events": "", "ab": 60, "pn": 3, "inn": 8, "topbot": "Top"},
-{"name": "Cutter", "batter": "Caballero", "p": "L", "s": "R", "color": "#FFD700", "x0": 0.50292, "y0": 16.34642, "z0": 1.76784, "vx0": -1.53328, "vy0": -38.54947, "vz0": -0.45401, "ax": -0.03937, "ay": 9.01444, "az": -8.38226, "tof": 0.435, "px": -0.17269, "pz": 0.87114, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 87.0, "desc": "called_strike", "events": "", "ab": 60, "pn": 4, "inn": 8, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Caballero", "p": "L", "s": "R", "color": "#FF4444", "x0": 0.4511, "y0": 16.34033, "z0": 1.76784, "vx0": -0.56123, "vy0": -42.10925, "vz0": -1.36901, "ax": 1.26645, "ay": 10.03472, "az": -4.82583, "tof": 0.3965, "px": 0.31534, "pz": 0.88616, "sz_top": 0.93973, "sz_bot": 0.47425, "speed": 94.9, "desc": "hit_into_play", "events": "double", "ab": 60, "pn": 5, "inn": 8, "topbot": "Top"},
-{"name": "Sinker", "batter": "Wells", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.57912, "y0": 16.27327, "z0": 1.68859, "vx0": -1.96008, "vy0": -41.64744, "vz0": -1.14623, "ax": 6.24837, "ay": 11.16981, "az": -6.03018, "tof": 0.402, "px": 0.23375, "pz": 0.78971, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 94.1, "desc": "foul", "events": "", "ab": 61, "pn": 1, "inn": 8, "topbot": "Top"},
-{"name": "Sinker", "batter": "Wells", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.60046, "y0": 16.32814, "z0": 1.70993, "vx0": -2.04936, "vy0": -42.0366, "vz0": -1.09183, "ax": 6.15293, "ay": 10.73516, "az": -7.46681, "tof": 0.3984, "px": 0.211, "pz": 0.74948, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 94.9, "desc": "foul", "events": "", "ab": 61, "pn": 2, "inn": 8, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Wells", "p": "L", "s": "L", "color": "#FF88CC", "x0": 0.51816, "y0": 16.17878, "z0": 1.65506, "vx0": -1.38541, "vy0": -36.19487, "vz0": -1.06247, "ax": -3.23813, "ay": 7.82751, "az": -9.80655, "tof": 0.4577, "px": -0.42679, "pz": 0.23837, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 81.6, "desc": "ball", "events": "", "ab": 61, "pn": 3, "inn": 8, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Wells", "p": "L", "s": "L", "color": "#FF88CC", "x0": 0.65532, "y0": 16.25803, "z0": 1.65506, "vx0": -0.73352, "vy0": -36.68138, "vz0": -0.84129, "ax": -3.21293, "ay": 7.97341, "az": -9.8997, "tof": 0.4538, "px": 0.02397, "pz": 0.36029, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 82.7, "desc": "ball", "events": "", "ab": 61, "pn": 4, "inn": 8, "topbot": "Top"},
-{"name": "Sinker", "batter": "Wells", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.56083, "y0": 16.27937, "z0": 1.6825, "vx0": -2.38381, "vy0": -41.78785, "vz0": -1.78593, "ax": 6.61227, "ay": 11.39461, "az": -7.59385, "tof": 0.4012, "px": 0.07217, "pz": 0.41766, "sz_top": 0.99189, "sz_bot": 0.50058, "speed": 94.5, "desc": "hit_into_play", "events": "field_out", "ab": 61, "pn": 5, "inn": 8, "topbot": "Top"},
-{"name": "4-Seam Fastball", "batter": "Durbin", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.46634, "y0": 16.34947, "z0": 1.86842, "vx0": 1.73633, "vy0": -42.58089, "vz0": -2.34321, "ax": -0.87508, "ay": 9.96603, "az": -3.23686, "tof": 0.3918, "px": 0.15957, "pz": 0.72445, "sz_top": 0.89826, "sz_bot": 0.45333, "speed": 96.1, "desc": "called_strike", "events": "", "ab": 62, "pn": 1, "inn": 8, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Durbin", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.49378, "y0": 16.383, "z0": 1.85623, "vx0": 1.33206, "vy0": -40.50137, "vz0": -1.75813, "ax": 2.58271, "ay": 8.06662, "az": -7.57459, "tof": 0.4106, "px": 0.24987, "pz": 0.56711, "sz_top": 0.89826, "sz_bot": 0.45333, "speed": 91.3, "desc": "hit_into_play", "events": "field_out", "ab": 62, "pn": 2, "inn": 8, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.53035, "y0": 16.40738, "z0": 1.87147, "vx0": 0.99657, "vy0": -42.5184, "vz0": -0.71189, "ax": -1.56798, "ay": 9.44007, "az": -4.2492, "tof": 0.3929, "px": -0.24261, "pz": 1.30345, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 95.8, "desc": "ball", "events": "", "ab": 63, "pn": 1, "inn": 8, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.49682, "y0": 16.37386, "z0": 1.88366, "vx0": 1.1404, "vy0": -42.77013, "vz0": -2.30739, "ax": -2.00243, "ay": 9.64274, "az": -3.53092, "tof": 0.3899, "px": -0.18275, "pz": 0.74123, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 96.5, "desc": "called_strike", "events": "", "ab": 63, "pn": 2, "inn": 8, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.50902, "y0": 16.33728, "z0": 1.88062, "vx0": 1.78838, "vy0": -40.36628, "vz0": -1.73571, "ax": 2.3086, "ay": 8.12831, "az": -7.17057, "tof": 0.411, "px": 0.40317, "pz": 0.62539, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 91.0, "desc": "ball", "events": "", "ab": 63, "pn": 3, "inn": 8, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.52426, "y0": 16.32814, "z0": 1.85928, "vx0": 0.69538, "vy0": -40.14412, "vz0": -1.2454, "ax": 2.45688, "ay": 8.15901, "az": -7.53761, "tof": 0.4133, "px": -0.04776, "pz": 0.77147, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 90.4, "desc": "foul_tip", "events": "", "ab": 63, "pn": 4, "inn": 8, "topbot": "Bot"},
-{"name": "Slider", "batter": "Narv\u00e1ez", "p": "R", "s": "R", "color": "#00CFFF", "x0": -0.53645, "y0": 16.3769, "z0": 1.87757, "vx0": 0.38463, "vy0": -39.81263, "vz0": 0.05988, "ax": 2.91408, "ay": 8.20742, "az": -9.65568, "tof": 0.4186, "px": -0.14875, "pz": 1.15962, "sz_top": 0.96942, "sz_bot": 0.48924, "speed": 89.6, "desc": "swinging_strike", "events": "strikeout", "ab": 63, "pn": 5, "inn": 8, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Duran", "p": "R", "s": "L", "color": "#FF4444", "x0": -0.39319, "y0": 16.3129, "z0": 1.87147, "vx0": 1.815, "vy0": -42.8986, "vz0": -2.07585, "ax": -1.9201, "ay": 10.01917, "az": -3.49126, "tof": 0.3878, "px": 0.18843, "pz": 0.82622, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 96.8, "desc": "called_strike", "events": "", "ab": 64, "pn": 1, "inn": 8, "topbot": "Bot"},
-{"name": "Slider", "batter": "Duran", "p": "R", "s": "L", "color": "#00CFFF", "x0": -0.35662, "y0": 16.29156, "z0": 1.92024, "vx0": 1.68913, "vy0": -40.13736, "vz0": -1.89079, "ax": 2.17859, "ay": 7.93634, "az": -9.15708, "tof": 0.4119, "px": 0.50879, "pz": 0.44312, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 90.5, "desc": "ball", "events": "", "ab": 64, "pn": 2, "inn": 8, "topbot": "Bot"},
-{"name": "Curveball", "batter": "Duran", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.36576, "y0": 16.27022, "z0": 1.86842, "vx0": 0.40908, "vy0": -36.79658, "vz0": -1.17217, "ax": 1.4745, "ay": 8.22889, "az": -12.95889, "tof": 0.4534, "px": -0.04269, "pz": 0.14639, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 83.0, "desc": "swinging_strike", "events": "", "ab": 64, "pn": 3, "inn": 8, "topbot": "Bot"},
-{"name": "Cutter", "batter": "Duran", "p": "R", "s": "L", "color": "#FFD700", "x0": -0.42977, "y0": 16.37081, "z0": 1.85928, "vx0": 1.07853, "vy0": -42.65549, "vz0": -1.1904, "ax": 0.09048, "ay": 9.90273, "az": -4.52018, "tof": 0.3915, "px": 0.00161, "pz": 1.08406, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 96.1, "desc": "swinging_strike", "events": "strikeout", "ab": 64, "pn": 4, "inn": 8, "topbot": "Bot"},
-{"name": "Sinker", "batter": "Bellinger", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.61265, "y0": 16.26413, "z0": 1.70993, "vx0": -2.08088, "vy0": -40.49779, "vz0": -1.17097, "ax": 5.26103, "ay": 9.88894, "az": -6.80014, "tof": 0.4116, "px": 0.14812, "pz": 0.70914, "sz_top": 1.01944, "sz_bot": 0.51448, "speed": 91.4, "desc": "called_strike", "events": "", "ab": 65, "pn": 1, "inn": 9, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Bellinger", "p": "L", "s": "L", "color": "#FF88CC", "x0": 0.58826, "y0": 16.2306, "z0": 1.6703, "vx0": -1.67679, "vy0": -36.44046, "vz0": -1.16391, "ax": -1.80863, "ay": 8.07331, "az": -8.99127, "tof": 0.4566, "px": -0.35345, "pz": 0.2931, "sz_top": 1.01944, "sz_bot": 0.51448, "speed": 82.2, "desc": "ball", "events": "", "ab": 65, "pn": 2, "inn": 9, "topbot": "Top"},
-{"name": "Sinker", "batter": "Bellinger", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.60655, "y0": 16.3007, "z0": 1.69469, "vx0": -2.47609, "vy0": -41.27073, "vz0": -1.30485, "ax": 6.28782, "ay": 10.47017, "az": -6.88243, "tof": 0.4053, "px": 0.05403, "pz": 0.65971, "sz_top": 1.01944, "sz_bot": 0.51448, "speed": 93.3, "desc": "called_strike", "events": "", "ab": 65, "pn": 3, "inn": 9, "topbot": "Top"},
-{"name": "Sinker", "batter": "Bellinger", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.55474, "y0": 16.35252, "z0": 1.73431, "vx0": -1.96103, "vy0": -41.91281, "vz0": -0.07765, "ax": 5.54303, "ay": 10.53872, "az": -6.9279, "tof": 0.4, "px": 0.15409, "pz": 1.21535, "sz_top": 1.01944, "sz_bot": 0.51448, "speed": 94.6, "desc": "ball", "events": "", "ab": 65, "pn": 4, "inn": 9, "topbot": "Top"},
-{"name": "Sinker", "batter": "Bellinger", "p": "L", "s": "L", "color": "#FF6600", "x0": 0.50597, "y0": 16.26718, "z0": 1.69774, "vx0": -1.98189, "vy0": -41.85502, "vz0": -1.6319, "ax": 5.93331, "ay": 11.0147, "az": -6.11538, "tof": 0.3993, "px": 0.12946, "pz": 0.607, "sz_top": 1.01944, "sz_bot": 0.51448, "speed": 94.5, "desc": "hit_into_play", "events": "field_out", "ab": 65, "pn": 5, "inn": 9, "topbot": "Top"},
-{"name": "Cutter", "batter": "Judge", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.30175, "y0": 16.25498, "z0": 1.68859, "vx0": 0.80214, "vy0": -39.95286, "vz0": -0.71532, "ax": -0.21326, "ay": 8.66423, "az": -7.21109, "tof": 0.4147, "px": 0.01678, "pz": 0.83602, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 90.0, "desc": "foul", "events": "", "ab": 66, "pn": 1, "inn": 9, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Judge", "p": "R", "s": "R", "color": "#FF88CC", "x0": -0.3109, "y0": 16.28546, "z0": 1.69469, "vx0": 0.57544, "vy0": -37.59872, "vz0": -0.57407, "ax": 1.55538, "ay": 7.49281, "az": -6.84095, "tof": 0.441, "px": 0.07907, "pz": 0.84779, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 84.7, "desc": "foul", "events": "", "ab": 66, "pn": 2, "inn": 9, "topbot": "Top"},
-{"name": "Curveball", "batter": "Judge", "p": "R", "s": "R", "color": "#7B68EE", "x0": -0.28956, "y0": 16.26718, "z0": 1.66726, "vx0": 0.88178, "vy0": -37.05525, "vz0": -0.29594, "ax": 3.06582, "ay": 9.20893, "az": -12.95942, "tof": 0.4528, "px": 0.39192, "pz": 0.35023, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 83.6, "desc": "ball", "events": "", "ab": 66, "pn": 3, "inn": 9, "topbot": "Top"},
-{"name": "Curveball", "batter": "Judge", "p": "R", "s": "R", "color": "#7B68EE", "x0": -0.32004, "y0": 16.29156, "z0": 1.67945, "vx0": 0.24685, "vy0": -36.76592, "vz0": -0.96571, "ax": 2.97067, "ay": 8.68026, "az": -12.73099, "tof": 0.4559, "px": 0.06784, "pz": 0.06282, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 82.9, "desc": "ball", "events": "", "ab": 66, "pn": 4, "inn": 9, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Judge", "p": "R", "s": "R", "color": "#FF88CC", "x0": -0.3109, "y0": 16.25803, "z0": 1.66116, "vx0": 0.70939, "vy0": -37.11906, "vz0": -1.65388, "ax": 3.14754, "ay": 8.2303, "az": -7.89113, "tof": 0.4487, "px": 0.29267, "pz": 0.20522, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 83.7, "desc": "ball", "events": "", "ab": 66, "pn": 5, "inn": 9, "topbot": "Top"},
-{"name": "Cutter", "batter": "Judge", "p": "R", "s": "R", "color": "#FFD700", "x0": -0.30785, "y0": 16.23365, "z0": 1.6703, "vx0": 1.07991, "vy0": -40.19806, "vz0": -0.97971, "ax": -0.26846, "ay": 8.27233, "az": -7.78927, "tof": 0.4104, "px": 0.11895, "pz": 0.67668, "sz_top": 1.07374, "sz_bot": 0.54189, "speed": 90.5, "desc": "called_strike", "events": "strikeout", "ab": 66, "pn": 6, "inn": 9, "topbot": "Top"},
-{"name": "Curveball", "batter": "Rice", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.34138, "y0": 16.27022, "z0": 1.65811, "vx0": 0.97144, "vy0": -36.81957, "vz0": 0.29454, "ax": 2.3742, "ay": 7.73063, "az": -12.83982, "tof": 0.4516, "px": 0.31793, "pz": 0.62599, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 83.0, "desc": "swinging_strike", "events": "", "ab": 67, "pn": 1, "inn": 9, "topbot": "Top"},
-{"name": "Curveball", "batter": "Rice", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.35662, "y0": 16.24584, "z0": 1.64592, "vx0": 0.85773, "vy0": -37.1804, "vz0": -0.68104, "ax": 3.1963, "ay": 7.86989, "az": -12.07326, "tof": 0.4464, "px": 0.31386, "pz": 0.26333, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 83.8, "desc": "ball", "events": "", "ab": 67, "pn": 2, "inn": 9, "topbot": "Top"},
-{"name": "Sinker", "batter": "Rice", "p": "R", "s": "L", "color": "#FF6600", "x0": -0.36881, "y0": 16.2306, "z0": 1.63373, "vx0": 1.55646, "vy0": -41.46338, "vz0": -2.1562, "ax": -4.63707, "ay": 8.77241, "az": -8.06078, "tof": 0.3978, "px": -0.07238, "pz": 0.19723, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 93.5, "desc": "ball", "events": "", "ab": 67, "pn": 3, "inn": 9, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Rice", "p": "R", "s": "L", "color": "#FF88CC", "x0": -0.41453, "y0": 16.27327, "z0": 1.63068, "vx0": 0.19733, "vy0": -37.68807, "vz0": -0.91476, "ax": 1.73923, "ay": 7.81961, "az": -7.75934, "tof": 0.4405, "px": -0.1758, "pz": 0.55342, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 84.9, "desc": "foul", "events": "", "ab": 67, "pn": 4, "inn": 9, "topbot": "Top"},
-{"name": "Curveball", "batter": "Rice", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.35966, "y0": 16.27327, "z0": 1.66726, "vx0": 0.04507, "vy0": -36.74875, "vz0": 0.06488, "ax": 2.74686, "ay": 7.63486, "az": -13.20305, "tof": 0.4523, "px": -0.08732, "pz": 0.49452, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 82.8, "desc": "foul", "events": "", "ab": 67, "pn": 5, "inn": 9, "topbot": "Top"},
-{"name": "Sweeper", "batter": "Rice", "p": "R", "s": "L", "color": "#FF88CC", "x0": -0.39319, "y0": 16.3007, "z0": 1.63678, "vx0": 0.60932, "vy0": -37.73722, "vz0": -0.84852, "ax": 3.97688, "ay": 7.87849, "az": -8.15621, "tof": 0.4408, "px": 0.22116, "pz": 0.55629, "sz_top": 0.99992, "sz_bot": 0.50463, "speed": 85.0, "desc": "called_strike", "events": "strikeout", "ab": 67, "pn": 6, "inn": 9, "topbot": "Top"},
-{"name": "Curveball", "batter": "Rafaela", "p": "R", "s": "R", "color": "#7B68EE", "x0": -0.5273, "y0": 16.59331, "z0": 1.80442, "vx0": 0.30992, "vy0": -33.68278, "vz0": 0.65796, "ax": 1.23363, "ay": 6.35351, "az": -11.81792, "tof": 0.5037, "px": -0.23774, "pz": 0.86177, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 75.9, "desc": "called_strike", "events": "", "ab": 68, "pn": 1, "inn": 9, "topbot": "Bot"},
-{"name": "Split-Finger", "batter": "Rafaela", "p": "R", "s": "R", "color": "#88FFCC", "x0": -0.55474, "y0": 16.4653, "z0": 1.79222, "vx0": 1.8898, "vy0": -40.07888, "vz0": -1.55247, "ax": -2.6343, "ay": 8.31982, "az": -7.81182, "tof": 0.4182, "px": 0.04023, "pz": 0.54423, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 90.4, "desc": "swinging_strike", "events": "", "ab": 68, "pn": 2, "inn": 9, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Rafaela", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.54559, "y0": 16.4592, "z0": 1.80442, "vx0": 2.10666, "vy0": -42.15254, "vz0": -0.4806, "ax": -4.40975, "ay": 10.46073, "az": -4.89139, "tof": 0.4001, "px": -0.00454, "pz": 1.27149, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 95.1, "desc": "ball", "events": "", "ab": 68, "pn": 3, "inn": 9, "topbot": "Bot"},
-{"name": "Split-Finger", "batter": "Rafaela", "p": "R", "s": "R", "color": "#88FFCC", "x0": -0.5395, "y0": 16.44091, "z0": 1.79527, "vx0": 1.5813, "vy0": -39.70043, "vz0": -1.18781, "ax": -1.90208, "ay": 8.44495, "az": -8.1859, "tof": 0.4222, "px": -0.01425, "pz": 0.65398, "sz_top": 0.94802, "sz_bot": 0.47844, "speed": 89.5, "desc": "hit_into_play", "events": "field_out", "ab": 68, "pn": 4, "inn": 9, "topbot": "Bot"},
-{"name": "Curveball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.64008, "y0": 16.56283, "z0": 1.77394, "vx0": 0.53261, "vy0": -33.92224, "vz0": 0.34033, "ax": 1.80083, "ay": 6.19119, "az": -10.96069, "tof": 0.4982, "px": -0.18328, "pz": 0.77957, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 76.4, "desc": "called_strike", "events": "", "ab": 69, "pn": 1, "inn": 9, "topbot": "Bot"},
-{"name": "Curveball", "batter": "Yoshida", "p": "R", "s": "L", "color": "#7B68EE", "x0": -0.56693, "y0": 16.56283, "z0": 1.78918, "vx0": 1.04755, "vy0": -33.86345, "vz0": -0.46059, "ax": 1.85539, "ay": 6.21494, "az": -11.09366, "tof": 0.4992, "px": 0.15641, "pz": 0.3747, "sz_top": 0.921, "sz_bot": 0.4648, "speed": 76.3, "desc": "hit_into_play", "events": "field_out", "ab": 69, "pn": 2, "inn": 9, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Contreras", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.5395, "y0": 16.43786, "z0": 1.81356, "vx0": 1.55641, "vy0": -42.34515, "vz0": -0.88719, "ax": -1.85475, "ay": 11.40406, "az": -3.36867, "tof": 0.3995, "px": -0.04389, "pz": 1.22303, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 95.6, "desc": "ball", "events": "", "ab": 70, "pn": 1, "inn": 9, "topbot": "Bot"},
-{"name": "Split-Finger", "batter": "Contreras", "p": "R", "s": "R", "color": "#88FFCC", "x0": -0.5395, "y0": 16.42872, "z0": 1.80137, "vx0": 2.61798, "vy0": -39.64961, "vz0": -1.69442, "ax": -2.38574, "ay": 8.71243, "az": -9.02847, "tof": 0.4231, "px": 0.38891, "pz": 0.37417, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 89.6, "desc": "ball", "events": "", "ab": 70, "pn": 2, "inn": 9, "topbot": "Bot"},
-{"name": "Curveball", "batter": "Contreras", "p": "R", "s": "R", "color": "#7B68EE", "x0": -0.58522, "y0": 16.6055, "z0": 1.80137, "vx0": 0.56155, "vy0": -33.16586, "vz0": 0.38352, "ax": 1.30237, "ay": 6.17979, "az": -11.85345, "tof": 0.5121, "px": -0.151, "pz": 0.67823, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 74.7, "desc": "called_strike", "events": "", "ab": 70, "pn": 3, "inn": 9, "topbot": "Bot"},
-{"name": "4-Seam Fastball", "batter": "Contreras", "p": "R", "s": "R", "color": "#FF4444", "x0": -0.52121, "y0": 16.37386, "z0": 1.79832, "vx0": 2.1457, "vy0": -42.35059, "vz0": -2.31121, "ax": -4.12538, "ay": 9.60362, "az": -3.64956, "tof": 0.394, "px": 0.04927, "pz": 0.63307, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 95.6, "desc": "foul", "events": "", "ab": 70, "pn": 4, "inn": 9, "topbot": "Bot"},
-{"name": "Split-Finger", "batter": "Contreras", "p": "R", "s": "R", "color": "#88FFCC", "x0": -0.55474, "y0": 16.41653, "z0": 1.7587, "vx0": 1.73695, "vy0": -40.17228, "vz0": -1.51176, "ax": -2.8776, "ay": 8.00353, "az": -9.01199, "tof": 0.4151, "px": -0.04343, "pz": 0.44702, "sz_top": 0.9844, "sz_bot": 0.4968, "speed": 90.6, "desc": "hit_into_play", "events": "field_out", "ab": 70, "pn": 5, "inn": 9, "topbot": "Bot"}
+{pitcher:“deGrom”,name:“4-Seam”,p:“R”,s:“R”,color:”#FF4444”,
+x0:-0.59131,y0:15.24,z0:1.86538,
+vx0:2.85902,vy0:-43.92168,vz0:-1.95682,
+ax:-7.6728,ay:7.9248,az:-4.95766,
+tof:0.34808,px:-0.06096,pz:0.88392,
+sz_bot:0.49378,sz_top:1.0729},
+{pitcher:“Rivera”,name:“Cutter”,p:“R”,s:“R”,color:”#FFD700”,
+x0:-0.55474,y0:15.24,z0:1.81356,
+vx0:0.59436,vy0:-39.44112,vz0:-1.60934,
+ax:5.81971,ay:7.9248,az:-5.53497,
+tof:0.39079,px:0.12192,pz:0.762,
+sz_bot:0.47854,sz_top:1.05766},
+{pitcher:“Scherzer”,name:“Slider”,p:“R”,s:“R”,color:”#00CFFF”,
+x0:-0.53035,y0:15.24,z0:1.79222,
+vx0:0.34138,vy0:-38.64864,vz0:-1.70993,
+ax:7.41926,ay:7.9248,az:-6.25894,
+tof:0.39951,px:0.19812,pz:0.6096,
+sz_bot:0.47244,sz_top:1.05156},
+{pitcher:“R.Johnson”,name:“Slider”,p:“R”,s:“R”,color:”#FF69B4”,
+x0:-0.52426,y0:15.24,z0:1.88976,
+vx0:0.25908,vy0:-36.36264,vz0:-1.48742,
+ax:2.86364,ay:7.9248,az:-7.73822,
+tof:0.42711,px:-0.1524,pz:0.54864,
+sz_bot:0.48158,sz_top:1.0607},
+{pitcher:“Kershaw”,name:“12-6 Curve”,p:“R”,s:“R”,color:”#7B68EE”,
+x0:-0.51206,y0:15.24,z0:1.81051,
+vx0:0.74371,vy0:-33.89376,vz0:-1.25578,
+ax:2.43832,ay:7.9248,az:-7.2517,
+tof:0.46183,px:0.09144,pz:0.4572,
+sz_bot:0.47244,sz_top:1.05156},
+{pitcher:“G.Cole”,name:“4-Seam”,p:“L”,s:“L”,color:”#FF6B35”,
+x0:0.56388,y0:15.24,z0:1.85318,
+vx0:-2.68834,vy0:-43.34256,vz0:-1.78003,
+ax:6.91498,ay:7.9248,az:-4.97981,
+tof:0.35305,px:0.04572,pz:0.9144,
+sz_bot:0.48768,sz_top:1.0668},
+{pitcher:“C.Sale”,name:“4-Seam”,p:“L”,s:“L”,color:”#FF4444”,
+x0:0.59131,y0:15.24,z0:1.77394,
+vx0:-2.20675,vy0:-42.91584,vz0:-1.65202,
+ax:2.12249,ay:7.9248,az:-4.24305,
+tof:0.3568,px:-0.06096,pz:0.9144,
+sz_bot:0.48158,sz_top:1.0607},
+{pitcher:“Koufax”,name:“Overhand Curve”,p:“L”,s:“L”,color:”#7B68EE”,
+x0:0.57302,y0:15.24,z0:1.74955,
+vx0:-0.86563,vy0:-33.34512,vz0:-1.18262,
+ax:-2.32573,ay:7.9248,az:-6.6536,
+tof:0.47038,px:-0.09144,pz:0.4572,
+sz_bot:0.4633,sz_top:1.04242},
+{pitcher:“Hamels”,name:“Changeup”,p:“L”,s:“L”,color:”#32CD32”,
+x0:0.58522,y0:15.24,z0:1.73126,
+vx0:-2.08483,vy0:-38.03904,vz0:-2.20066,
+ax:2.62097,ay:7.9248,az:-3.11759,
+tof:0.4065,px:-0.04572,pz:0.57912,
+sz_bot:0.47244,sz_top:1.05156},
+{pitcher:“Chapman”,name:“Sinker”,p:“L”,s:“L”,color:”#FF8C00”,
+x0:0.6157,y0:15.24,z0:1.80442,
+vx0:-2.87122,vy0:-45.04944,vz0:-2.38963,
+ax:3.56629,ay:7.9248,az:-6.18041,
+tof:0.3388,px:-0.1524,pz:0.64008,
+sz_bot:0.49378,sz_top:1.0729},
 ];
 
 function posAtT(p,t){
-  return {x:p.x0+p.vx0*t+0.5*p.ax*t*t,
-          y:p.y0+p.vy0*t+0.5*p.ay*t*t,
-          z:p.z0+p.vz0*t+0.5*p.az*t*t};
+return {x:p.x0+p.vx0*t+0.5*p.ax*t*t,
+y:p.y0+p.vy0*t+0.5*p.ay*t*t,
+z:p.z0+p.vz0*t+0.5*p.az*t*t};
 }
 function sc2v(x,y,z){return new THREE.Vector3(-x,z,-y);}
-function isStrike(p){return Math.abs(p.px)<=0.4318/2&&p.pz>=p.sz_bot&&p.pz<=p.sz_top;}
 
-function broadcast(p,phase,fs){
-  if(fs!==undefined) p._flightStart=fs;
-  const payload={
-    phase,
-    ab:p.ab,pn:p.pn,inn:p.inn,topbot:p.topbot,
-    name:p.name,batter:p.batter,stand:p.s,p_throws:p.p,
-    tof_sec:p.tof,
-    tof_ms:Math.round(p.tof*1000),
-    // plate coords in meters & inches
-    px_m:p.px, pz_m:p.pz,
-    px_in:+(p.px/0.0254).toFixed(1),
-    pz_in:+(p.pz/0.0254).toFixed(1),
-    sz_top_m:p.sz_top, sz_bot_m:p.sz_bot,
-    is_strike:isStrike(p),
-    speed_mph:p.speed,
-    vx0:p.vx0,vy0:p.vy0,vz0:p.vz0,
-    ax:p.ax,ay:p.ay,az:p.az,
-    x0:p.x0,y0:p.y0,z0:p.z0,
-    desc:p.desc,events:p.events,color:p.color,flightStart_ms:fs||0,
-  };
-  // Same-page: fire as a window event so the bottom UI can listen
-  window.dispatchEvent(new CustomEvent('pitch',{detail:payload}));
-}
-
-// ── RENDERER — mount into #v-frame ────────────────────────────────────────
-const frame=document.getElementById('v-frame');
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+// –– RENDERER —————————————————————
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:‘high-performance’});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.shadowMap.enabled=true;
-frame.appendChild(renderer.domElement);
-
-function resize3d(){
-  const W=frame.clientWidth, H=frame.clientHeight;
-  renderer.setSize(W,H,false);
-  camera.aspect=W/H;
-  camera.updateProjectionMatrix();
-}
-
+document.body.appendChild(renderer.domElement);
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x050916);
-scene.fog=new THREE.Fog(0x050916,100,260);
+scene.background=new THREE.Color(0x0a0e1a);
+scene.fog=new THREE.Fog(0x0a0e1a,90,220);
+
 const rig=new THREE.Group();scene.add(rig);
-const camera=new THREE.PerspectiveCamera(50,1,0.05,600);
+const camera=new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,0.05,600);
 camera.position.set(0,0,-0.08);
 rig.add(camera);
+window.addEventListener(‘resize’,()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
 
-window.addEventListener('resize',resize3d);
-resize3d();
+// –– CAMERA POSITIONS —————————————————––
+const EYE_HIGH=1.676,EYE_LOW=1.524,EYE_Z=0.46;
+function batPos(s,ey){return new THREE.Vector3(s===‘R’?-0.978:0.978,ey,EYE_Z);}
+function catPos(s){return new THREE.Vector3(s===‘R’?-0.30:0.30,0.61,1.52);}
 
-// ── GYRO ──────────────────────────────────────────────────────────────────
+// –– GYRO —————————————————————––
 let gyroOn=false,baseAlpha=null,baseBeta=0,rawAlpha=0,rawBeta=0;
-window.addEventListener('deviceorientation',e=>{
-  if(!gyroOn||e.alpha==null)return;
-  if(baseAlpha===null){baseAlpha=e.alpha;baseBeta=e.beta;}
-  rawAlpha=e.alpha;rawBeta=e.beta;
+window.addEventListener(‘deviceorientation’,e=>{
+if(!gyroOn||e.alpha==null)return;
+if(baseAlpha===null){baseAlpha=e.alpha;baseBeta=e.beta;}
+rawAlpha=e.alpha;rawBeta=e.beta;
 },true);
 (function(){
-  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function')
-    window.addEventListener('touchend',()=>DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')gyroOn=true;}),{once:true});
-  else gyroOn=true;
+if(typeof DeviceOrientationEvent!==‘undefined’&&typeof DeviceOrientationEvent.requestPermission===‘function’)
+window.addEventListener(‘touchend’,()=>DeviceOrientationEvent.requestPermission().then(r=>{if(r===‘granted’)gyroOn=true;}),{once:true});
+else gyroOn=true;
 })();
 
-// ── LIGHTING ──────────────────────────────────────────────────────────────
+// –– LIGHTING —————————————————————
+// Deep navy sky, punchy stadium floods, strong field color
+scene.background=new THREE.Color(0x050916);
+scene.fog=new THREE.Fog(0x050916,100,260);
+
 scene.add(new THREE.AmbientLight(0x223355,1.2));
 scene.add(new THREE.HemisphereLight(0x55aa33,0x112208,1.0));
+
+// Twelve stadium floods - bright, warm, directional
 [[-16,-14],[16,-14],[-16,-30],[16,-30],[-30,-55],[30,-55],
- [-16,2],[16,2],[-40,-20],[40,-20],[0,-65],[0,5]].forEach(([tx,tz])=>{
-  const sl=new THREE.SpotLight(0xfff6d0,3.2,320,0.52,0.2);
-  sl.position.set(tx,22,tz);sl.target.position.set(0,0,-20);
-  scene.add(sl);scene.add(sl.target);
+[-16,2],[16,2],[-40,-20],[40,-20],[0,-65],[0,5]].forEach(([tx,tz])=>{
+const sl=new THREE.SpotLight(0xfff6d0,3.2,320,0.52,0.2);
+sl.position.set(tx,22,tz);sl.target.position.set(0,0,-20);
+sl.castShadow=false;
+scene.add(sl);scene.add(sl.target);
 });
-const ballLight=new THREE.PointLight(0xffffff,8.0,3.0);scene.add(ballLight);
-const ballFill=new THREE.PointLight(0x88ccff,3.0,2.0);scene.add(ballFill);
 
-// ── GROUND ────────────────────────────────────────────────────────────────
+// Ball glow system: warm key + cool fill + tight specular
+const ballLight=new THREE.PointLight(0xffffff,8.0,3.0);
+scene.add(ballLight);
+const ballFill=new THREE.PointLight(0x88ccff,3.0,2.0);
+scene.add(ballFill);
+
+// –– GROUND - ONE FLAT GREEN PLANE ——————————————
 (function(){
-  const geo=new THREE.PlaneGeometry(400,400);geo.rotateX(-Math.PI/2);
-  scene.add(new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:0x1e5212})));
-})();
-(function(){
-  const W=220,D=200,segs=44;
-  const geo=new THREE.PlaneGeometry(W,D,segs,1);geo.rotateX(-Math.PI/2);
-  const col=[],pos=geo.attributes.position.array,sw=W/segs;
-  for(let i=0;i<pos.length/3;i++){
-    const s=Math.floor((pos[i*3]+W/2)/sw)%2,b=s?0.42:0.26;
-    col.push(b*0.32,b*0.88,b*0.18);
-  }
-  geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
-  const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true}));
-  m.position.set(0,0.001,-50);scene.add(m);
-})();
-(function(){
-  const m=new THREE.Mesh(new THREE.CylinderGeometry(1.22,1.52,0.254,24),
-    new THREE.MeshLambertMaterial({color:0x6b3d12}));
-  m.position.set(0,0.127,-18.44);scene.add(m);
-  const r=new THREE.Mesh(new THREE.BoxGeometry(0.61,0.04,0.152),
-    new THREE.MeshLambertMaterial({color:0xffffff}));
-  r.position.set(0,0.267,-18.44);scene.add(r);
-})();
-(function(){
-  const s=new THREE.Shape(),hw=0.2159;
-  s.moveTo(-hw,hw);s.lineTo(hw,hw);s.lineTo(hw,0);s.lineTo(0,-hw);s.lineTo(-hw,0);s.closePath();
-  const g=new THREE.ShapeGeometry(s);g.rotateX(-Math.PI/2);
-  const plate=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:0xffffff}));
-  plate.position.set(0,0.003,0.05);scene.add(plate);
-})();
-(function(){
-  const mat=new THREE.MeshLambertMaterial({color:0xeeeedd});
-  const h=0.007,t=0.038;
-  function box(x1,x2){
-    const cx=(x1+x2)/2,w=x2-x1,d=1.828;
-    [[cx,0,t,d],[cx,d/2,w,t],[cx,-d/2,w,t],[x1,0,t,d],[x2,0,t,d]].forEach(([px,pz,bw,bd])=>{
-      const mb=new THREE.Mesh(new THREE.BoxGeometry(bw,h,bd),mat);
-      mb.position.set(px,h/2,pz);scene.add(mb);
-    });
-  }
-  box(-1.588,-0.368);box(0.368,1.588);
-})();
-(function(){
-  const OO=[[67.701,63.745],[69.593,67.818],[71.487,71.89],[73.381,75.962],[75.18,80.072],[76.482,84.346],[75.583,88.709],[72.867,92.226],[68.892,94.288],[64.866,96.277],[60.839,98.266],[56.818,100.265],[52.795,102.262],[48.777,104.267],[44.756,106.268],[40.73,108.258],[36.71,110.26],[32.685,112.253],[29.169,114.688],[27.807,118.967],[26.34,123.204],[23.474,125.162],[19.14,123.985],[14.809,122.797],[10.474,121.625],[6.137,120.459],[1.799,119.297],[-2.533,118.113],[-6.871,116.949],[-11.201,115.757],[-15.311,115.566],[-18.791,115.618],[-21.983,112.459],[-25.129,109.255],[-28.312,106.086],[-31.475,102.898],[-34.632,99.704],[-37.783,96.505],[-40.999,93.371],[-44.189,90.21],[-47.348,87.018],[-50.52,83.839],[-53.706,80.674],[-56.879,77.496],[-60.058,74.323],[-63.242,71.156],[-66.405,67.969],[-68.596,64.787],[-65.437,61.594],[-62.279,58.402],[-59.12,55.209],[-55.962,52.016],[-52.803,48.823],[-49.644,45.631],[-46.486,42.438],[-44.247,38.789],[-43.616,34.343],[-42.984,29.896],[-42.353,25.45],[-41.721,21.003],[-40.89,16.638],[-38.258,12.999],[-35.625,9.36],[-32.993,5.721],[-30.361,2.083],[-27.728,-1.556],[-25.096,-5.195],[-22.464,-8.834],[-19.831,-12.472],[-17.199,-16.111],[-14.147,-19.214],[-9.985,-20.902],[-5.816,-22.552],[-1.326,-22.469],[3.164,-22.385],[7.647,-22.26],[11.857,-20.697],[16.067,-19.134],[19.591,-16.665],[22.236,-13.035],[24.881,-9.405],[27.526,-5.776],[30.17,-2.146],[32.366,1.744],[34.191,5.847],[36.017,9.95],[37.843,14.053],[39.669,18.156],[41.495,22.259],[43.321,26.362],[45.147,30.465],[46.973,34.568],[48.799,38.672],[49.663,40.29],[51.122,42.125],[53.528,45.176],[56.635,49.152],[60.197,53.765],[63.968,58.726],[67.701,63.745]];
-  function wall(pts,y0,wh,col){
-    if(!pts||pts.length<2)return;
-    const v=[];
-    for(let i=0;i<pts.length-1;i++){
-      const ax=pts[i][0],az=-pts[i][1],bx=pts[i+1][0],bz=-pts[i+1][1];
-      v.push(ax,y0,az,bx,y0,bz,ax,y0+wh,az,bx,y0,bz,bx,y0+wh,bz,ax,y0+wh,az);
-    }
-    const wg=new THREE.BufferGeometry();
-    wg.setAttribute('position',new THREE.Float32BufferAttribute(v,3));
-    wg.computeVertexNormals();
-    scene.add(new THREE.Mesh(wg,new THREE.MeshLambertMaterial({color:col,side:THREE.DoubleSide})));
-  }
-  function warnTrack(pts){
-    const v=[],w=1.4;
-    for(let i=0;i<pts.length-1;i++){
-      const ax=pts[i][0],az=-pts[i][1],bx=pts[i+1][0],bz=-pts[i+1][1];
-      const nx=-(bz-az),nz=bx-ax,len=Math.sqrt(nx*nx+nz*nz)||1;
-      const ox=nx/len*w,oz=nz/len*w;
-      v.push(ax,0.003,az,bx,0.003,bz,ax+ox,0.003,az+oz,bx,0.003,bz,bx+ox,0.003,bz+oz,ax+ox,0.003,az+oz);
-    }
-    const wg=new THREE.BufferGeometry();
-    wg.setAttribute('position',new THREE.Float32BufferAttribute(v,3));
-    scene.add(new THREE.Mesh(wg,new THREE.MeshLambertMaterial({color:0xc4894a,side:THREE.DoubleSide})));
-  }
-  wall(OO.filter(p=>p[0]<-28),0,11.3,0x1e5c10);
-  wall(OO.filter(p=>p[0]>=-28),0,3.7,0x174d0c);
-  warnTrack(OO);
-})();
-(function(){
-  const v=[];
-  for(let i=0;i<700;i++){
-    const th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1)*0.45,r=300;
-    v.push(Math.sin(ph)*Math.cos(th)*r,Math.cos(ph)*r,Math.sin(ph)*Math.sin(th)*r);
-  }
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));
-  scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:0.55,sizeAttenuation:true})));
+const geo=new THREE.PlaneGeometry(400,400);
+geo.rotateX(-Math.PI/2);
+const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:0x1e5212}));
+m.receiveShadow=true;
+scene.add(m);
 })();
 
-const ballMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:0xaaaaaa,emissiveIntensity:0.3,roughness:0.4,metalness:0.0});
-const ball=new THREE.Mesh(new THREE.SphereGeometry(0.044,32,32),ballMat);
+// –– MOW STRIPES ————————————————————
+(function(){
+const W=220,D=200,segs=44;
+const geo=new THREE.PlaneGeometry(W,D,segs,1);geo.rotateX(-Math.PI/2);
+const col=[],pos=geo.attributes.position.array,sw=W/segs;
+for(let i=0;i<pos.length/3;i++){
+const stripe=Math.floor((pos[i*3]+W/2)/sw)%2;
+// High contrast stripes - really pops under stadium lights
+const b=stripe?0.42:0.26;
+col.push(b*0.32,b*0.88,b*0.18);
+}
+geo.setAttribute(‘color’,new THREE.Float32BufferAttribute(col,3));
+const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({vertexColors:true}));
+m.position.set(0,0.001,-50);
+scene.add(m);
+})();
+
+// –– PITCHER MOUND –––––––––––––––––––––––––––––
+(function(){
+const m=new THREE.Mesh(new THREE.CylinderGeometry(1.22,1.52,0.254,24),
+new THREE.MeshLambertMaterial({color:0x6b3d12}));
+m.position.set(0,0.127,-18.44);m.castShadow=true;scene.add(m);
+const r=new THREE.Mesh(new THREE.BoxGeometry(0.61,0.04,0.152),
+new THREE.MeshLambertMaterial({color:0xffffff}));
+r.position.set(0,0.267,-18.44);scene.add(r);
+})();
+
+// –– HOME PLATE ———————————————————––
+(function(){
+const s=new THREE.Shape(),hw=0.2159;
+s.moveTo(-hw,hw);s.lineTo(hw,hw);s.lineTo(hw,0);s.lineTo(0,-hw);s.lineTo(-hw,0);s.closePath();
+const g=new THREE.ShapeGeometry(s);g.rotateX(-Math.PI/2);
+const m=new THREE.Mesh(g,new THREE.MeshLambertMaterial({color:0xffffff}));
+m.position.set(0,0.003,0.05);scene.add(m);
+})();
+
+// –– BATTER BOXES ———————————————————–
+(function(){
+const mat=new THREE.MeshLambertMaterial({color:0xeeeedd});
+const h=0.007,t=0.038;
+function box(x1,x2){
+const cx=(x1+x2)/2,w=x2-x1,d=1.828;
+[[cx,0,t,d],[cx,d/2,w,t],[cx,-d/2,w,t],[x1,0,t,d],[x2,0,t,d]].forEach(([px,pz,bw,bd])=>{
+const mb=new THREE.Mesh(new THREE.BoxGeometry(bw,h,bd),mat);
+mb.position.set(px,h/2,pz);scene.add(mb);
+});
+}
+box(-1.588,-0.368);
+box(0.368,1.588);
+})();
+
+// –– FENWAY WALLS ———————————————————–
+(function(){
+function wall(pts,y0,wh,col){
+if(!pts||pts.length<2)return;
+const v=[];
+for(let i=0;i<pts.length-1;i++){
+const ax=pts[i][0],az=-pts[i][1],bx=pts[i+1][0],bz=-pts[i+1][1];
+v.push(ax,y0,az,bx,y0,bz,ax,y0+wh,az,bx,y0,bz,bx,y0+wh,bz,ax,y0+wh,az);
+}
+const wg=new THREE.BufferGeometry();wg.setAttribute(‘position’,new THREE.Float32BufferAttribute(v,3));wg.computeVertexNormals();
+scene.add(new THREE.Mesh(wg,new THREE.MeshLambertMaterial({color:col,side:THREE.DoubleSide})));
+}
+function warnTrack(pts){
+const v=[],w=1.4;
+for(let i=0;i<pts.length-1;i++){
+const ax=pts[i][0],az=-pts[i][1],bx=pts[i+1][0],bz=-pts[i+1][1];
+const nx=-(bz-az),nz=bx-ax,len=Math.sqrt(nx*nx+nz*nz)||1;
+const ox=nx/len*w,oz=nz/len*w;
+v.push(ax,0.003,az,bx,0.003,bz,ax+ox,0.003,az+oz,bx,0.003,bz,bx+ox,0.003,bz+oz,ax+ox,0.003,az+oz);
+}
+const wg=new THREE.BufferGeometry();wg.setAttribute(‘position’,new THREE.Float32BufferAttribute(v,3));
+scene.add(new THREE.Mesh(wg,new THREE.MeshLambertMaterial({color:0xc4894a,side:THREE.DoubleSide})));
+}
+const oo=FENWAY.outfield_outer;
+wall(oo.filter(p=>p[0]<-28),0,11.3,0x1e5c10);
+wall(oo.filter(p=>p[0]>=-28),0,3.7,0x174d0c);
+warnTrack(oo);
+})();
+
+// –– STARS ——————————————————————
+(function(){
+const v=[];
+for(let i=0;i<700;i++){const th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1)*0.45,r=300;v.push(Math.sin(ph)*Math.cos(th)*r,Math.cos(ph)*r,Math.sin(ph)*Math.sin(th)*r);}
+const g=new THREE.BufferGeometry();g.setAttribute(‘position’,new THREE.Float32BufferAttribute(v,3));
+scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:0.55,sizeAttenuation:true})));
+})();
+
+// –– BALL —————————————————————––
+// Bright solid yellow-orange - maximum visibility, no seams to distract
+const ball=new THREE.Mesh(
+new THREE.SphereGeometry(0.044,32,32),
+new THREE.MeshStandardMaterial({
+color:0xffffff,
+emissive:0xaaaaaa,
+emissiveIntensity:0.3,
+roughness:0.4,
+metalness:0.0
+})
+);
 ball.castShadow=true;ball.visible=false;scene.add(ball);
 
+// –– FLIGHT PATH FOR REVERSE ————————————————
 const FLIGHT_SAMPLES=64;
 let flightPath=[];
 function sampleFlightPath(p){
-  flightPath=[];
-  for(let i=0;i<=FLIGHT_SAMPLES;i++){
-    const t=(i/FLIGHT_SAMPLES)*p.tof;
-    const sc=posAtT(p,t);
-    flightPath.push(sc2v(sc.x,sc.y,sc.z));
-  }
+flightPath=[];
+for(let i=0;i<=FLIGHT_SAMPLES;i++){
+const t=(i/FLIGHT_SAMPLES)*p.tof;
+const sc=posAtT(p,t);
+flightPath.push(sc2v(sc.x,sc.y,sc.z));
+}
 }
 
+// –– STRIKE ZONE ————————————————————
+// Hollow white square - 4 flat strips. Turns red/blue on result.
 let zoneGroup=null;
 function buildZone(p){
-  if(zoneGroup)scene.remove(zoneGroup);
-  zoneGroup=new THREE.Group();
-  const W=0.4318,H=p.sz_top-p.sz_bot,midY=p.sz_bot+H/2;
-  const mat=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});
-  const t=0.008;
-  [[0,p.sz_top,W,t],[0,p.sz_bot,W,t],[-W/2,midY,t,H],[W/2,midY,t,H]].forEach(([x,y,w,h])=>{
-    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat.clone());
-    m.position.set(x,y,0.05);zoneGroup.add(m);
-  });
-  scene.add(zoneGroup);
+if(zoneGroup)scene.remove(zoneGroup);
+zoneGroup=new THREE.Group();
+const W=0.4318,H=p.sz_top-p.sz_bot,midY=p.sz_bot+H/2;
+const mat=new THREE.MeshBasicMaterial({color:0xffffff,side:THREE.DoubleSide});
+const t=0.022;
+[[0,p.sz_top,W,t],[0,p.sz_bot,W,t],[-W/2,midY,t,H],[W/2,midY,t,H]].forEach(([x,y,w,h])=>{
+const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat.clone());
+m.position.set(x,y,0.05);
+zoneGroup.add(m);
+});
+scene.add(zoneGroup);
 }
 function colorZone(strike){
-  if(!zoneGroup)return;
-  const c=new THREE.Color(strike?0xff2200:0x0066ff);
-  zoneGroup.children.forEach(m=>{if(m.material)m.material.color.copy(c);});
+if(!zoneGroup)return;
+const c=new THREE.Color(strike?0xff2200:0x0066ff);
+zoneGroup.children.forEach(m=>{if(m.material)m.material.color.copy(c);});
 }
+function isStrike(p){return Math.abs(p.px)<=0.4318/2&&p.pz>=p.sz_bot&&p.pz<=p.sz_top;}
 
+// –– STATE ——————————————————————
 let pitchIdx=0,curPitch=null;
-let phase='pre_pause',phaseT=0,flightStart=0;
-let relPos=new THREE.Vector3(),endPt=new THREE.Vector3();
+let phase=‘pre_pause’,phaseT=0,flightStart=0;
+let relPos=new THREE.Vector3();
+let endPt=new THREE.Vector3();
+const PLATE_LOOK=new THREE.Vector3(0,0.09,0.06);
 const ZONE_LOOK=new THREE.Vector3(0,0,0);
 let rigP=new THREE.Vector3(),rigPTgt=new THREE.Vector3();
 let lookA=new THREE.Vector3(),lookTgt=new THREE.Vector3();
 let fovA=50,fovTgt=50,rigRoll=0;
 const K=1.8;
-let plateFlashed=false;
-
-const EYE_HIGH=1.676,EYE_LOW=1.524,EYE_Z=0.46;
-function batPos(s,ey){return new THREE.Vector3(s==='R'?-0.978:0.978,ey,EYE_Z);}
-function catPos(s){return new THREE.Vector3(s==='R'?-0.30:0.30,0.61,1.52);}
 
 function setZoneLook(p){ZONE_LOOK.set(0,(p.sz_bot+p.sz_top)/2,0.05);}
 
 function loadPitch(){
-  curPitch=PITCHES[pitchIdx%PITCHES.length];pitchIdx++;
-  const p=curPitch;
-  const hex=parseInt(p.color.replace('#',''),16);
-  ballMat.color.setHex(hex);
-  ballMat.emissive.setHex(hex);
-  buildZone(p);setZoneLook(p);
-  relPos.copy(sc2v(p.x0,p.y0,p.z0));
-  endPt.copy(sc2v(p.px,0.4318,p.pz));
-  ball.visible=false;ball.position.copy(relPos);
-  plateFlashed=false;
-  broadcast(p,'preview');
-  // Shift viewport: RHB (s=R) → scene shifts left (canvas more negative left)
-  //                 LHB (s=L) → scene shifts right (canvas less negative left)
-  const cvs = frame.querySelector('canvas');
-  if(cvs) cvs.style.left = (p.s==='R' ? '-8%' : '-48%');
-  rigPTgt.copy(batPos(p.s,EYE_HIGH));
-  rigP.copy(rigPTgt); // snap camera to batter side immediately
-  lookA.copy(relPos);lookTgt.copy(relPos);
-  phase='pre_pause';phaseT=0;
+curPitch=PITCHES[pitchIdx%PITCHES.length];pitchIdx++;
+buildZone(curPitch);setZoneLook(curPitch);
+relPos.copy(sc2v(curPitch.x0,curPitch.y0,curPitch.z0));
+endPt.copy(sc2v(curPitch.px,1.417*0.3048,curPitch.pz));
+ball.visible=true;
+ball.position.copy(relPos);
+rigPTgt.copy(batPos(curPitch.s,EYE_HIGH));
+if(pitchIdx===1){rigP.copy(rigPTgt);lookA.copy(relPos);lookTgt.copy(relPos);}
+phase=‘pre_pause’;phaseT=0;
 }
 
 function startFlight(){
-  sampleFlightPath(curPitch);
-  ball.position.copy(sc2v(posAtT(curPitch,0).x,posAtT(curPitch,0).y,posAtT(curPitch,0).z));
-  flightStart=performance.now();
-  phase='fly';phaseT=0;
-  // Tell bottom UI exactly when ball left hand
-  window.dispatchEvent(new CustomEvent('flightstart',{detail:{t:flightStart,tof_ms:Math.round(curPitch.tof*1000)}}));
+sampleFlightPath(curPitch);
+const sc0=posAtT(curPitch,0);
+ball.position.copy(sc2v(sc0.x,sc0.y,sc0.z));
+flightStart=performance.now();
+phase=‘fly’;phaseT=0;
 }
 
+// –– RENDER LOOP ————————————————————
 let lastT=performance.now();
 function animate(){
-  requestAnimationFrame(animate);
-  const now=performance.now();
-  const dt=Math.min((now-lastT)/1000,0.05);
-  lastT=now;phaseT+=dt;
-  if(!curPitch){renderer.render(scene,camera);return;}
+requestAnimationFrame(animate);
+const now=performance.now();
+const dt=Math.min((now-lastT)/1000,0.05);
+lastT=now;phaseT+=dt;
+if(!curPitch){renderer.render(scene,camera);return;}
 
-  const p=curPitch;
-  const bP=batPos(p.s,EYE_HIGH);
-  const cP=catPos(p.s);
+const side=curPitch.s;
+const bP=batPos(side,EYE_HIGH);
+const cP=catPos(side);
 
-  if(phase==='pre_pause'){
-    rigPTgt.copy(bP);lookTgt.copy(relPos);
-    fovTgt=50-(50-28)*Math.min(phaseT/1.0,1.0);
-    ball.position.copy(relPos);ball.visible=false;
-    if(phaseT>=1.0){phase='pre_blink';phaseT=0;}
-  }
-  else if(phase==='pre_blink'){
-    rigPTgt.copy(bP);lookTgt.copy(relPos);fovTgt=28;
-    ball.position.copy(relPos);
-    ball.visible=(phaseT%0.30)/0.30<0.65;
-    if(phaseT>=0.9){ball.visible=true;startFlight();}
-  }
-  else if(phase==='fly'){
-    const elapsed=(now-flightStart)/1000;
-    const prog=Math.min(elapsed/p.tof,1.0);
-    const t=Math.min(elapsed,p.tof);
-    const sc=posAtT(p,t);
-    const pos=sc2v(sc.x,sc.y,sc.z);
-    ball.position.copy(pos);
-    ball.rotation.x+=dt*22;ball.rotation.z+=dt*9;
-    ballLight.position.copy(pos);ballFill.position.copy(pos);
-    rigPTgt.lerpVectors(bP,cP,prog);
-    rigPTgt.y=EYE_HIGH+(EYE_LOW-EYE_HIGH)*Math.pow(prog,0.8);
-    lookTgt.lerpVectors(relPos,ZONE_LOOK,Math.min(prog/0.4,1.0));
-    fovTgt=28+(44-28)*prog;
-    rigRoll=(15*Math.PI/180)*Math.sin(prog*Math.PI)*((prog<0.5)?1:-1);
-
-    if(!plateFlashed&&elapsed>=p.tof){
-      plateFlashed=true;
-      broadcast(p,'crossing',flightStart);
-    }
-    if(elapsed>=p.tof+0.06){
-      ball.position.copy(endPt);
-      colorZone(isStrike(p));
-      broadcast(p,'result');
-      phase='post_land';phaseT=0;
-    }
-  }
-  else if(phase==='post_land'){
-    ball.position.copy(endPt);ball.visible=true;
-    rigPTgt.copy(cP);lookTgt.copy(endPt);fovTgt=44;
-    rigRoll*=(1-Math.min(dt*5,1));
-    if(phaseT>=1.0){phase='post_climb';phaseT=0;}
-  }
-  else if(phase==='post_climb'){
-    const t2=Math.min(phaseT/1.0,1.0);
-    const idx=Math.max(0,Math.round((1.0-t2)*(flightPath.length-1)));
-    const bp=flightPath[idx];
-    ball.position.copy(bp);ballLight.position.copy(bp);
-    ball.visible=true;
-    rigPTgt.lerpVectors(cP,bP,t2);
-    lookTgt.copy(bp);
-    fovTgt=44+(50-44)*t2;
-    if(phaseT>=1.0){ball.visible=false;loadPitch();}
-  }
-
-  const jt=now*0.001;
-  if(phase==='fly'){
-    rigP.lerp(rigPTgt,Math.min(dt*12,1));
-    lookA.lerp(lookTgt,Math.min(dt*6,1));
-    fovA+=(fovTgt-fovA)*Math.min(dt*8,1);
-    rigP.x+=Math.sin(jt*1.3)*0.003;
-    rigP.y+=Math.sin(jt*0.9)*0.002;
-  } else {
-    rigRoll*=(1-Math.min(dt*3,1));
-    rigP.lerp(rigPTgt,Math.min(dt*K,1));
-    lookA.lerp(lookTgt,Math.min(dt*K,1));
-    fovA+=(fovTgt-fovA)*Math.min(dt*K,1);
-  }
-  if(gyroOn&&baseAlpha!==null&&phase==='fly'){
-    let dA=rawAlpha-baseAlpha;if(dA>180)dA-=360;if(dA<-180)dA+=360;
-    rig.rotation.y=-dA*(Math.PI/180)*0.06;
-    rig.rotation.x=(rawBeta-baseBeta)*(Math.PI/180)*0.05;
-  } else {
-    rig.rotation.y*=(1-Math.min(dt*4,1));
-    rig.rotation.x*=(1-Math.min(dt*4,1));
-  }
-  rig.position.copy(rigP);
-  rig.rotation.z=rigRoll;
-  camera.fov=fovA;camera.updateProjectionMatrix();
-  camera.lookAt(lookA);
-  renderer.render(scene,camera);
+if(phase===‘pre_pause’){
+rigPTgt.copy(bP);lookTgt.copy(relPos);
+// Zoom progressively tighter over the 1s pause — from 50 down to 28
+fovTgt=50-(50-28)*Math.min(phaseT/1.0,1.0);
+ball.position.copy(relPos);ball.visible=true;
+if(phaseT>=1.0){phase=‘pre_blink’;phaseT=0;}
 }
+else if(phase===‘pre_blink’){
+rigPTgt.copy(bP);lookTgt.copy(relPos);fovTgt=28;
+ball.position.copy(relPos);
+ball.visible=(phaseT%0.30)/0.30<0.65;
+if(phaseT>=0.9){ball.visible=true;startFlight();}
+}
+else if(phase===‘fly’){
+const elapsed=(now-flightStart)/1000;
+const prog=Math.min(elapsed/curPitch.tof,1.0);
+const t=Math.min(elapsed,curPitch.tof);
+const sc=posAtT(curPitch,t);
+const pos=sc2v(sc.x,sc.y,sc.z);
+ball.position.copy(pos);
+ball.rotation.x+=dt*22;ball.rotation.z+=dt*9;
+ballLight.position.copy(pos);
+rigPTgt.lerpVectors(bP,cP,prog);
+rigPTgt.y=EYE_HIGH+(EYE_LOW-EYE_HIGH)*Math.pow(prog,0.8);
+lookTgt.lerpVectors(relPos,ZONE_LOOK,Math.min(prog/0.4,1.0));
+fovTgt=28+(44-28)*prog;
+rigRoll=(15*Math.PI/180)*Math.sin(prog*Math.PI)*((prog<0.5)?1:-1);
+if(elapsed>=curPitch.tof+0.06){
+ball.position.copy(endPt);
+const strike=isStrike(curPitch);
+colorZone(strike);
+phase=‘post_land’;phaseT=0;
+}
+}
+else if(phase===‘post_land’){
+ball.position.copy(endPt);ball.visible=true;
+rigPTgt.copy(cP);lookTgt.copy(endPt);fovTgt=44;
+rigRoll*=(1-Math.min(dt*5,1));
+if(phaseT>=1.0){phase=‘post_climb’;phaseT=0;}
+}
+else if(phase===‘post_climb’){
+const t=Math.min(phaseT/1.0,1.0);
+const pathIdx=Math.max(0,Math.round((1.0-t)*(flightPath.length-1)));
+const ballPos=flightPath[pathIdx];
+ball.position.copy(ballPos);
+ballLight.position.copy(ballPos);
+ball.visible=(phaseT%0.25)/0.25<0.55;
+rigPTgt.lerpVectors(cP,bP,t);
+lookTgt.copy(ballPos);
+fovTgt=44+(50-44)*t;
+if(phaseT>=1.0){ball.visible=false;loadPitch();}
+}
+
+// Unified lerp
+const jt=now*0.001;
+if(phase===‘fly’){
+rigP.lerp(rigPTgt,Math.min(dt*12,1));
+lookA.lerp(lookTgt,Math.min(dt*6,1));
+fovA+=(fovTgt-fovA)*Math.min(dt*8,1);
+rigP.x+=Math.sin(jt*1.3)*0.003;
+rigP.y+=Math.sin(jt*0.9)*0.002;
+} else {
+rigRoll*=(1-Math.min(dt*3,1));
+rigP.lerp(rigPTgt,Math.min(dt*K,1));
+lookA.lerp(lookTgt,Math.min(dt*K,1));
+fovA+=(fovTgt-fovA)*Math.min(dt*K,1);
+}
+
+if(gyroOn&&baseAlpha!==null&&phase===‘fly’){
+let dA=rawAlpha-baseAlpha;if(dA>180)dA-=360;if(dA<-180)dA+=360;
+rig.rotation.y=-dA*(Math.PI/180)*0.06;
+rig.rotation.x=(rawBeta-baseBeta)*(Math.PI/180)*0.05;
+} else {
+rig.rotation.y*=(1-Math.min(dt*4,1));
+rig.rotation.x*=(1-Math.min(dt*4,1));
+}
+
+rig.position.copy(rigP);
+rig.rotation.z=rigRoll;
+camera.fov=fovA;camera.updateProjectionMatrix();
+camera.lookAt(lookA);
+renderer.render(scene,camera);
+}
+
 loadPitch();
 animate();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════════
-  BOTTOM UI GAME LOGIC
-  Listens for 'pitch' CustomEvents from the Three.js animation above.
-  Uses real Statcast px/pz for location, tof_sec for timing window.
-═══════════════════════════════════════════════════════════════ -->
-<script>
-const sz  = document.getElementById('strike-zone');
-const swz = document.getElementById('swing-zone');
-const fSvg= document.getElementById('field-svg');
-const resMain = document.getElementById('res-main');
-const resSub  = document.getElementById('res-sub');
-
-let g = {r:0,b:0,s:0,o:0,bases:[false,false,false]};
-let activePitch = null;   // set on 'preview', used on tap/result
-let swingTime   = null;   // performance.now() when flight started
-let pitched     = false;  // prevent double-processing
-
-// ── Receive pitch events from Three.js ───────────────────────────────────
-window.addEventListener('pitch', e => {
-  const d = e.detail;
-
-  if(d.phase === 'preview'){
-    pitched = false;
-    activePitch = d;
-    swingTime = null;
-    sz.querySelectorAll('.ball-asset,.bat-asset,.pitch-dot').forEach(el=>el.remove());
-  }
-
-  if(d.phase === 'crossing'){
-    if(!pitched){
-      pitched = true;
-      processTaken(d);
-    }
-  }
-
-  if(d.phase === 'result'){
-    updateUI();
-  }
-});
-
-// Capture exact moment ball leaves hand for timing
-window.addEventListener('flightstart', e => {
-  swingTime = e.detail.t; // performance.now() from Three.js
-});
-
-// ── Swing input ───────────────────────────────────────────────────────────
-swz.addEventListener('touchstart', e => {
-  e.preventDefault();
-  if(!activePitch) return;
-  if(pitched) return; // already resolved
-  pitched = true;
-
-  const now    = performance.now();
-  const tof_ms = activePitch.tof_ms;
-  // expectedAt = when ball left hand + flight time = plate crossing moment
-  // If swingTime not set yet (tapped before crossing), estimate from now
-  // expectedAt = moment ball left hand + tof = plate crossing
-  // swingTime is set by 'flightstart' event from Three.js
-  const expectedAt = swingTime ? (swingTime + tof_ms) : now;
-  const tDiff_ms   = now - expectedAt; // <0 early, >0 late, 0 = perfect
-
-  const rect   = sz.getBoundingClientRect();
-  const touchX = e.touches[0].clientX - rect.left;
-  const touchY = e.touches[0].clientY - rect.top;
-
-  // Map real plate coords to pixel position inside #strike-zone
-  const {pxPx, pyPx} = plateToPixel(activePitch);
-
-  const dist   = Math.sqrt((touchX-pxPx)**2 + (touchY-pyPx)**2);
-
-  // Show bat & ball
-  const bat = document.createElement('div'); bat.className='bat-asset';
-  bat.style.left=touchX+'px'; bat.style.top=touchY+'px'; sz.appendChild(bat);
-  const ballEl = document.createElement('div'); ballEl.className='ball-asset';
-  ballEl.style.left=pxPx+'px'; ballEl.style.top=pyPx+'px'; sz.appendChild(ballEl);
-
-  if(dist < 34){
-    // Contact!
-    const la  = Math.round(((touchY - pyPx) / 15) * 45);
-    const ang = Math.round((pxPx - touchX) * 2.5);
-    const ev  = Math.round(110 - (dist*2.5) - (Math.abs(tDiff_ms)*0.35));
-    const ft  = Math.round((ev*4.3)*(Math.cos(la*Math.PI/180)));
-    const timeTag = tDiff_ms < -100 ? 'EARLY' : tDiff_ms > 100 ? 'LATE' : 'PERFECT';
-    const contactTag = dist<10 ? 'SQUARED' : dist<22 ? 'SOLID' : 'WEAK';
-    resSub.innerText = '';
-    handleHit(ft, ang, la);
-  } else {
-    // Swing and miss
-    resMain.innerText = 'STRIKE (WHIFF)';
-    resSub.innerText  = '';
-    addStrike('SWINGING');
-    updateUI();
-  }
-}, {passive:false});
-
-// ── Helpers ───────────────────────────────────────────────────────────────
-
-// Convert real Statcast plate_x / plate_z to pixel position in #strike-zone
-function plateToPixel(d){
-  const szW = sz.offsetWidth, szH = sz.offsetHeight;
-  // px_m: -0.2159 to +0.2159 (half plate width = 0.2159m)
-  const xNorm = (-d.px_m / 0.2159) * 0.5 + 0.5;  // negated: batter POV (inside=right for RHB)
-  // pz_m: sz_bot_m to sz_top_m
-  const zNorm = 1 - ((d.pz_m - d.sz_bot_m)/(d.sz_top_m - d.sz_bot_m));
-  return {
-    pxPx: Math.max(0,Math.min(szW, xNorm * szW)),
-    pyPx: Math.max(0,Math.min(szH, zNorm * szH))
-  };
-}
-
-function showDot(d, cls){
-  const {pxPx,pyPx} = plateToPixel(d);
-  const dot = document.createElement('div'); dot.className=cls;
-  dot.style.left=pxPx+'px'; dot.style.top=pyPx+'px';
-  sz.appendChild(dot);
-}
-
-function processTaken(d){
-  // Ball crossed plate, batter took it
-  showDot(d, 'ball-asset');
-  if(d.is_strike){
-    resMain.innerText = 'CALLED STRIKE';
-    resSub.innerText  = d.name+' · '+Math.round(d.speed_mph)+' MPH';
-    addStrike('CALLED');
-  } else {
-    resMain.innerText = 'BALL';
-    resSub.innerText  = d.name+' · '+Math.round(d.speed_mph)+' MPH';
-    addBall();
-  }
-  updateUI();
-}
-
-function handleHit(ft, angle, la){
-  let res='OUT', move=0, tag='OUT';
-  if(Math.abs(angle)>52){
-    if(ft>10&&ft<30){ g.o++;g.b=0;g.s=0;resMain.innerText='FOUL OUT';checkState(); }
-    else{ addStrike('FOUL');resMain.innerText='FOUL'; }
-    updateUI();return;
-  }
-  if(ft<110){res=la<0?'GROUND OUT':'POP OUT';}
-  else if(ft<225){res='SINGLE';move=1;tag='1B';}
-  else if(ft<325){res='DOUBLE';move=2;tag='2B';}
-  else{
-    const wall=Math.abs(angle)>35?335:400;
-    if(ft>=wall){res='HOME RUN';move=4;tag='HR';}
-    else{res='TRIPLE';move=3;tag='3B';}
-  }
-  resMain.innerText=res+' ('+ft+' FT)';
-  const ds=(ft/400)*50;
-  const endY=98-ds, endX=50+(angle*(ds/50));
-  const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-  line.setAttribute('x1','50');line.setAttribute('y1','98');
-  line.setAttribute('x2',endX);line.setAttribute('y2',endY);
-  line.setAttribute('stroke',move>0?'var(--gold)':`#555`);
-  line.setAttribute('stroke-width','1.5');
-  fSvg.appendChild(line);
-  const dot=document.createElement('div');dot.className='hit-dot';dot.innerText=tag;
-  dot.style.left=endX+'%';dot.style.top=endY+'%';
-  document.getElementById('field-container').appendChild(dot);
-  if(move>0){g.b=0;g.s=0;advanceRunners(move);}
-  else{g.o++;g.b=0;g.s=0;checkState();}
-  updateUI();
-}
-
-function advanceRunners(bases){
-  for(let i=0;i<bases;i++){
-    if(g.bases[2])g.r++;
-    g.bases[2]=g.bases[1];g.bases[1]=g.bases[0];
-    g.bases[0]=(i===0&&bases<4);
-    if(bases===4&&i===3)g.r++;
-  }
-}
-function addStrike(reason){
-  if(reason==='FOUL'){if(g.s<2)g.s++;}
-  else{
-    g.s++;
-    if(g.s>=3){g.s=0;g.b=0;g.o++;resMain.innerText='STRIKE THREE (OUT)';checkState();}
-    else{resMain.innerText='STRIKE';}
-  }
-}
-function addBall(){
-  g.b++;
-  if(g.b>=4){
-    g.b=0;g.s=0;resMain.innerText='WALK';
-    if(g.bases[0]&&g.bases[1]&&g.bases[2])g.r++;
-    else if(g.bases[0]&&g.bases[1])g.bases[2]=true;
-    else if(g.bases[0])g.bases[1]=true;
-    g.bases[0]=true;
-  }
-}
-function checkState(){if(g.o>=3){g.o=0;g.bases=[false,false,false];resMain.innerText='INNING OVER (3 OUTS)';}}
-function updateUI(){
-  document.getElementById('r-val').innerText=g.r;
-  const render=(id,cur,max,cls)=>{
-    let h='';for(let i=0;i<max;i++)h+='<div class="dot '+(i<cur?cls:'')+'"></div>';
-    document.getElementById(id).innerHTML=h;
-  };
-  render('b-dots',g.b,3,'b-on');render('s-dots',g.s,2,'s-on');render('o-dots',g.o,2,'o-on');
-  document.getElementById('mb-1').className='m-base '+(g.bases[0]?'m-on':'');
-  document.getElementById('mb-2').className='m-base '+(g.bases[1]?'m-on':'');
-  document.getElementById('mb-3').className='m-base '+(g.bases[2]?'m-on':'');
-}
-updateUI();
-</script>
 </body>
 </html>
